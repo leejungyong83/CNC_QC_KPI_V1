@@ -3,8 +3,10 @@ import pandas as pd
 from datetime import datetime
 import io
 from PIL import Image
+import uuid
 from pages.inspector_management import get_all_inspectors
 from pages.item_management import get_all_models
+from utils.supabase_client import get_supabase_client
 
 def show_inspection_input():
     """검사 데이터 입력 화면 표시"""
@@ -308,6 +310,11 @@ def show_data_input_form():
     
     st.markdown("---")
     
+    # 디버그 모드 추가 (개발 중 확인용)
+    debug_mode = st.checkbox("디버그 모드", value=False, key="debug_mode")
+    if debug_mode:
+        st.info("디버그 모드가 활성화되었습니다. 저장 시 세부 정보가 표시됩니다.")
+    
     # 저장 버튼
     if st.button("데이터 저장", type="primary"):
         if selected_inspector == "검사원 선택" or process == "공정을 선택하세요" or model == "모델을 선택하세요" or not lot_number:
@@ -347,6 +354,107 @@ def show_data_input_form():
                 st.session_state.inspection_data = []
                 
             st.session_state.inspection_data.append(data)
+            
+            # Supabase에 데이터 저장
+            try:
+                # Supabase 클라이언트 연결
+                supabase = get_supabase_client()
+                
+                if debug_mode:
+                    st.write("Supabase 클라이언트 연결 성공")
+                
+                # 검사자 UUID 확인 - 실제 UUID 형식이 아닌 경우 임시 UUID 생성
+                inspector_uuid = inspector_id
+                try:
+                    # UUID 형식 검증
+                    uuid.UUID(inspector_id)
+                except (ValueError, AttributeError):
+                    # 유효한 UUID가 아니면 임시 UUID 생성
+                    inspector_uuid = str(uuid.uuid4())
+                    if debug_mode:
+                        st.warning(f"검사자 ID '{inspector_id}'가 유효한 UUID가 아니므로 임시 UUID로 대체: {inspector_uuid}")
+                
+                # 검사자 레코드 확인 - 없으면 생성
+                inspector_check = supabase.table('inspectors').select('*').eq('id', inspector_uuid).execute()
+                
+                if debug_mode:
+                    st.write(f"검사자 조회 결과: {len(inspector_check.data)}개 레코드 발견")
+                
+                if not inspector_check.data:
+                    # 검사자 레코드 생성
+                    inspector_data = {
+                        "id": inspector_uuid,
+                        "name": inspector_name,
+                        "employee_id": inspector_id,
+                        "department": "품질관리부"  # 기본값
+                    }
+                    inspector_result = supabase.table('inspectors').insert(inspector_data).execute()
+                    if debug_mode:
+                        st.write(f"새 검사자 생성: {inspector_result.data}")
+                
+                # 모델 ID 가져오기
+                models_response = supabase.table('production_models').select('*').eq('model_name', model).execute()
+                
+                if debug_mode:
+                    st.write(f"모델 조회 결과: {len(models_response.data)}개 레코드 발견")
+                    if models_response.data:
+                        st.write(f"조회된 모델 데이터: {models_response.data}")
+                
+                model_id = None
+                if not models_response.data:
+                    # 모델이 없으면 새로 생성
+                    model_data = {
+                        "model_no": f"AUTO-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                        "model_name": model,
+                        "process": process
+                    }
+                    model_result = supabase.table('production_models').insert(model_data).execute()
+                    model_id = model_result.data[0]['id']
+                    if debug_mode:
+                        st.write(f"새 모델 생성: {model_result.data}")
+                else:
+                    model_id = models_response.data[0]['id']
+                
+                if debug_mode:
+                    st.write(f"사용할 모델 ID: {model_id}")
+                
+                # 검사 데이터 저장
+                inspection_data = {
+                    "inspection_date": inspection_date.strftime("%Y-%m-%d"),
+                    "inspector_id": inspector_uuid,
+                    "model_id": model_id,
+                    "result": "불합격" if defect_qty > 0 else "합격",
+                    "quantity": total_inspected,
+                    "notes": note if note else None
+                }
+                
+                if debug_mode:
+                    st.write(f"저장할 검사 데이터: {inspection_data}")
+                
+                inspection_result = supabase.table('inspection_data').insert(inspection_data).execute()
+                inspection_id = inspection_result.data[0]['id']
+                
+                if debug_mode:
+                    st.write(f"저장된 검사 데이터: {inspection_result.data}")
+                
+                # 불량 데이터가 있는 경우 저장
+                if defect_qty > 0 and selected_defects:
+                    for defect_type, count in defect_quantities.items():
+                        if count > 0:
+                            defect_data = {
+                                "inspection_id": inspection_id,
+                                "defect_type": defect_type,
+                                "defect_count": count,
+                                "description": defect_desc if defect_desc else None
+                            }
+                            defect_result = supabase.table('defects').insert(defect_data).execute()
+                            if debug_mode:
+                                st.write(f"저장된 불량 데이터: {defect_result.data}")
+                
+                st.success(f"검사 데이터가 성공적으로 Supabase에 저장되었습니다. (검사 ID: {inspection_id})")
+            except Exception as e:
+                st.error(f"Supabase 저장 중 오류가 발생했습니다: {str(e)}")
+                st.exception(e)
             
             st.success(f"검사 데이터가 성공적으로 저장되었습니다. (현재 총 {len(st.session_state.inspection_data)}건의 데이터가 저장됨)")
             
