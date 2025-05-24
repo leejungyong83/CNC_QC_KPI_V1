@@ -13,7 +13,7 @@ def load_env_settings():
         # .env 파일이 없으면 생성
         env_file = os.path.join(os.getcwd(), '.env')
         if not os.path.exists(env_file):
-            with open(env_file, 'w') as f:
+            with open(env_file, 'w', encoding='utf-8') as f:
                 f.write('SUPABASE_URL=your_supabase_url\n')
                 f.write('SUPABASE_KEY=your_supabase_key\n')
     
@@ -22,9 +22,43 @@ def load_env_settings():
 
 def save_env_setting(key, value):
     """환경 설정을 .env 파일에 저장합니다."""
-    env_file = load_env_settings()
+    env_file = find_dotenv()
+    if not env_file:
+        env_file = os.path.join(os.getcwd(), '.env')
     set_key(env_file, key, value)
-    load_dotenv(env_file, override=True)  # 변경사항 즉시 적용
+
+def simple_connection_test():
+    """간단한 연결 테스트 (button 없이)"""
+    try:
+        client = get_supabase_client()
+        client_type = type(client).__name__
+        
+        if client_type == "DummySupabaseClient":
+            st.error("❌ 오프라인 모드로 작동 중입니다. Supabase 연결이 설정되지 않았습니다.")
+            
+            # 설정 상태 진단
+            url = os.getenv("SUPABASE_URL", "")
+            key = os.getenv("SUPABASE_KEY", "")
+            
+            if url in ["", "your_supabase_url"]:
+                st.warning("🔧 Supabase URL이 설정되지 않았습니다.")
+            elif key in ["", "your_supabase_key"]:
+                st.warning("🔧 Supabase KEY가 설정되지 않았습니다.")
+            else:
+                st.warning("🔧 설정은 되어있지만 연결에 실패했습니다. URL과 KEY를 다시 확인해주세요.")
+        else:
+            # 실제 연결 테스트
+            try:
+                # 간단한 쿼리로 연결 테스트
+                response = client.table('users').select('*').limit(1).execute()
+                st.success("✅ Supabase에 성공적으로 연결되었습니다!")
+                st.success("🎯 users 테이블에도 정상적으로 접근 가능합니다!")
+            except Exception as e:
+                st.success("✅ Supabase 기본 연결은 성공했습니다!")
+                st.warning(f"⚠️ 테이블 접근 시 오류: {str(e)}")
+                st.info("💡 테이블이 없거나 RLS 정책 문제일 수 있습니다.")
+    except Exception as e:
+        st.error(f"❌ 연결 테스트 중 오류 발생: {str(e)}")
 
 def show_supabase_config():
     """Supabase 연결 설정 화면을 표시합니다."""
@@ -57,7 +91,7 @@ def show_supabase_config():
         else:
             st.success("**Supabase KEY:** ✅ 설정됨")
     
-    # 연결 상태 테스트
+    # 연결 상태 테스트 (form 외부)
     st.subheader("연결 상태")
     col1, col2 = st.columns(2)
     
@@ -125,8 +159,8 @@ def show_supabase_config():
                     st.success("✅ Supabase 설정이 .env 파일에 영구 저장되었습니다!")
                     st.success("🎉 다음부터는 앱을 재시작해도 자동으로 설정이 로드됩니다!")
                     
-                    # 연결 테스트
-                    test_connection()
+                    # 간단한 연결 테스트 (button 없이)
+                    simple_connection_test()
                     
                     # 페이지 새로고침으로 변경사항 적용
                     st.rerun()
@@ -134,7 +168,7 @@ def show_supabase_config():
                 except Exception as e:
                     st.error(f"❌ 설정 저장 중 오류 발생: {str(e)}")
     
-    # 설정 초기화 기능
+    # 설정 초기화 기능 (form 외부로 이동)
     st.markdown("---")
     st.subheader("⚙️ 고급 설정")
     
@@ -156,7 +190,7 @@ def show_supabase_config():
     
     with col2:
         if os.path.exists(env_file):
-            with open(env_file, 'r') as f:
+            with open(env_file, 'r', encoding='utf-8') as f:
                 env_content = f.read()
             
             st.download_button(
@@ -169,38 +203,10 @@ def show_supabase_config():
             )
 
 def test_connection():
-    """연결 상태를 테스트하고 결과를 표시합니다."""
-    try:
-        client = get_supabase_client()
-        client_type = type(client).__name__
-        
-        if client_type == "DummySupabaseClient":
-            st.error("❌ 오프라인 모드로 작동 중입니다. Supabase 연결이 설정되지 않았습니다.")
-            
-            # 설정 상태 진단
-            url = os.getenv("SUPABASE_URL", "")
-            key = os.getenv("SUPABASE_KEY", "")
-            
-            if url in ["", "your_supabase_url"]:
-                st.warning("🔧 Supabase URL이 설정되지 않았습니다.")
-            elif key in ["", "your_supabase_key"]:
-                st.warning("🔧 Supabase KEY가 설정되지 않았습니다.")
-            else:
-                st.warning("🔧 설정은 되어있지만 연결에 실패했습니다. URL과 KEY를 다시 확인해주세요.")
-        else:
-            # 실제 연결 테스트
-            try:
-                # 간단한 쿼리로 연결 테스트
-                response = client.table('users').select('*').limit(1).execute()
-                st.success("✅ Supabase에 성공적으로 연결되었습니다!")
-                st.success("🎯 users 테이블에도 정상적으로 접근 가능합니다!")
-            except Exception as e:
-                st.success("✅ Supabase 기본 연결은 성공했습니다!")
-                st.warning(f"⚠️ 테이블 접근 시 오류: {str(e)}")
-                st.info("💡 테이블이 없거나 RLS 정책 문제일 수 있습니다. 아래 테이블 설정을 확인해보세요.")
-    except Exception as e:
-        st.error(f"❌ 연결 테스트 중 오류 발생: {str(e)}")
-
+    """연결 상태를 테스트하고 결과를 표시합니다. (button 포함된 전체 버전)"""
+    # 간단한 연결 테스트
+    simple_connection_test()
+    
     # 도움말 섹션 추가
     st.markdown("---")
     st.subheader("📚 도움말")
@@ -245,27 +251,27 @@ def test_connection():
         ```
         """)
     
-    # 테이블 설정 및 테스트 기능
+    # 테이블 설정 및 테스트 기능 (form 외부)
     st.subheader("🧪 테이블 설정 및 테스트")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        if st.button("🏗️ users 테이블 생성", use_container_width=True):
+        if st.button("🏗️ users 테이블 생성", use_container_width=True, key="create_table"):
             create_users_table()
     
     with col2:
-        if st.button("📋 테스트 데이터 삽입", use_container_width=True):
+        if st.button("📋 테스트 데이터 삽입", use_container_width=True, key="test_data"):
             test_data_insertion()
     
     col3, col4 = st.columns(2)
     
     with col3:
-        if st.button("🔧 제약 조건 수정", use_container_width=True):
+        if st.button("🔧 제약 조건 수정", use_container_width=True, key="fix_constraints"):
             fix_constraints()
     
     with col4:
-        if st.button("📊 테이블 구조 확인", use_container_width=True):
+        if st.button("📊 테이블 구조 확인", use_container_width=True, key="check_structure"):
             client = get_supabase_client()
             if type(client).__name__ != "DummySupabaseClient":
                 check_table_structure(client)
@@ -280,12 +286,11 @@ def create_users_table():
             st.error("❌ Supabase에 연결되지 않았습니다. 먼저 연결 설정을 완료하세요.")
             return
         
-        st.warning("⚠️ 기존 users 테이블이 있는 것으로 확인되었습니다.")
-        st.info("💡 기존 데이터를 보존하면서 필요한 컬럼만 추가하는 것을 권장합니다.")
+        st.info("💡 기존 테이블 구조를 확인하고 안전하게 업데이트합니다.")
         
-        # 기존 테이블에 컬럼 추가 SQL (안전한 방법)
-        add_columns_sql = """
-        -- 기존 users 테이블에 누락된 컬럼 추가 (안전한 방법)
+        # SQL 스크립트 표시
+        st.code("""
+        -- 안전한 테이블 업데이트
         ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT;
         ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
         ALTER TABLE users ADD COLUMN IF NOT EXISTS department TEXT;
@@ -295,95 +300,14 @@ def create_users_table():
         ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
         ALTER TABLE users ADD COLUMN IF NOT EXISTS password TEXT;
         
-        -- 기존 데이터 업데이트 (username을 name으로 복사)
-        UPDATE users SET name = username WHERE name IS NULL;
-        UPDATE users SET is_active = true WHERE is_active IS NULL;
-        UPDATE users SET updated_at = created_at WHERE updated_at IS NULL;
-        
-        -- role 제약 조건 수정 (중요!)
-        ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
-        ALTER TABLE users ADD CONSTRAINT users_role_check 
-        CHECK (role IN ('user', 'admin', 'manager', 'inspector'));
-        """
-        
-        # RLS 정책 설정 SQL
-        rls_policy_sql = """
-        -- RLS 비활성화 (간단한 해결)
+        -- RLS 비활성화 (간단한 해결책)
         ALTER TABLE users DISABLE ROW LEVEL SECURITY;
-        """
+        """, language="sql")
         
-        # 탭으로 옵션 구분
-        tab1, tab2 = st.tabs(["✅ 안전한 방법 (권장)", "⚠️ 새로 생성 (주의)"])
-        
-        with tab1:
-            st.subheader("1️⃣ 기존 테이블에 컬럼 추가 (권장)")
-            st.success("✅ 기존 데이터를 보존하면서 필요한 컬럼만 추가합니다.")
-            st.code(add_columns_sql, language="sql")
-            
-            st.subheader("2️⃣ RLS 정책 설정")
-            st.code(rls_policy_sql, language="sql")
-        
-        with tab2:
-            st.error("❌ 주의: 이 방법은 기존 데이터를 모두 삭제합니다!")
-            create_new_table_sql = """
-            -- ⚠️ 주의: 기존 데이터가 모두 삭제됩니다!
-            DROP TABLE IF EXISTS users CASCADE;
-            
-            CREATE TABLE users (
-                id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-                username TEXT UNIQUE NOT NULL,
-                email TEXT UNIQUE NOT NULL,
-                name TEXT NOT NULL,
-                role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin')),
-                password_hash TEXT,
-                password TEXT,
-                is_active BOOLEAN DEFAULT true,
-                department TEXT,
-                phone TEXT,
-                position TEXT,
-                notes TEXT,
-                created_at TIMESTAMPTZ DEFAULT now(),
-                updated_at TIMESTAMPTZ DEFAULT now()
-            );
-            """
-            st.code(create_new_table_sql, language="sql")
-        
-        # 테이블 구조 확인 기능
-        st.subheader("3️⃣ 현재 테이블 구조 확인")
-        if st.button("📋 현재 users 테이블 구조 확인"):
-            check_table_structure(client)
+        st.warning("⚠️ 위 SQL을 Supabase SQL 편집기에서 실행하세요.")
         
     except Exception as e:
         st.error(f"❌ 오류 발생: {str(e)}")
-
-def check_table_structure(client):
-    """현재 users 테이블의 구조를 확인합니다."""
-    try:
-        # 테이블 구조 확인을 위한 쿼리
-        response = client.table('users').select('*').limit(1).execute()
-        
-        if response.data:
-            # 첫 번째 레코드가 있으면 컬럼 정보 표시
-            sample_record = response.data[0]
-            st.success("✅ users 테이블이 존재합니다!")
-            st.subheader("테이블 컬럼 정보:")
-            
-            for column, value in sample_record.items():
-                value_type = type(value).__name__
-                st.write(f"- **{column}**: {value_type} (예시값: {value})")
-        else:
-            # 테이블은 있지만 데이터가 없는 경우
-            st.success("✅ users 테이블이 존재하지만 데이터가 없습니다.")
-            st.info("샘플 데이터를 추가하거나 '사용자 DB 관리'에서 사용자를 추가하세요.")
-            
-    except Exception as e:
-        error_message = str(e)
-        if "does not exist" in error_message:
-            st.warning("⚠️ users 테이블이 존재하지 않습니다. 위의 SQL로 테이블을 생성하세요.")
-        elif "violates row-level security policy" in error_message:
-            st.warning("⚠️ RLS 정책으로 인해 데이터를 읽을 수 없습니다. RLS를 비활성화하세요.")
-        else:
-            st.error(f"❌ 테이블 구조 확인 중 오류: {error_message}")
 
 def test_data_insertion():
     """테스트 데이터 삽입을 시도합니다."""
@@ -426,46 +350,40 @@ def test_data_insertion():
             st.error("❌ 데이터 삽입에 실패했습니다.")
             
     except Exception as e:
-        error_message = str(e)
-        st.error(f"❌ 테스트 중 오류 발생: {error_message}")
-        
-        if "violates row-level security policy" in error_message:
-            st.warning("⚠️ RLS 정책 오류입니다. 다음 SQL을 실행하세요:")
-            st.code("ALTER TABLE users DISABLE ROW LEVEL SECURITY;", language="sql")
-        elif "relation \"users\" does not exist" in error_message:
-            st.warning("⚠️ users 테이블이 존재하지 않습니다. 먼저 테이블을 생성하세요.")
-        else:
-            st.info("💡 자세한 오류 해결 방법은 위의 도움말을 참조하세요.")
+        st.error(f"❌ 테스트 중 오류 발생: {str(e)}")
 
 def fix_constraints():
-    """테이블 제약 조건을 수정합니다."""
+    """제약 조건을 수정합니다."""
     try:
         client = get_supabase_client()
         if type(client).__name__ == "DummySupabaseClient":
-            st.error("❌ Supabase에 연결되지 않았습니다. 먼저 연결 설정을 완료하세요.")
+            st.error("❌ Supabase에 연결되지 않았습니다.")
             return
         
-        # 제약 조건 수정 SQL
-        fix_constraints_sql = """
-        -- role 제약 조건 수정
+        st.info("💡 제약 조건 수정이 필요하면 다음 SQL을 실행하세요:")
+        st.code("""
         ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
         ALTER TABLE users ADD CONSTRAINT users_role_check 
         CHECK (role IN ('user', 'admin', 'manager', 'inspector'));
-        
-        -- RLS 정책 비활성화
-        ALTER TABLE users DISABLE ROW LEVEL SECURITY;
-        
-        -- 기본값 설정
-        ALTER TABLE users ALTER COLUMN is_active SET DEFAULT true;
-        ALTER TABLE users ALTER COLUMN role SET DEFAULT 'user';
-        """
-        
-        st.subheader("🔧 제약 조건 수정 SQL")
-        st.info("다음 SQL을 Supabase SQL Editor에서 실행하세요:")
-        st.code(fix_constraints_sql, language="sql")
-        
-        st.success("✅ 제약 조건 수정 SQL이 준비되었습니다.")
-        st.warning("⚠️ 이 SQL을 실행한 후 앱에서 사용자 추가를 다시 시도하세요.")
+        """, language="sql")
         
     except Exception as e:
-        st.error(f"❌ 오류 발생: {str(e)}") 
+        st.error(f"❌ 오류 발생: {str(e)}")
+
+def check_table_structure(client):
+    """테이블 구조를 확인합니다."""
+    try:
+        # 테이블 정보 조회
+        response = client.table('users').select('*').limit(1).execute()
+        st.success("✅ users 테이블에 접근 가능합니다!")
+        
+        if response.data:
+            st.subheader("테이블 구조")
+            columns = list(response.data[0].keys())
+            for col in columns:
+                st.write(f"- `{col}`")
+        else:
+            st.info("테이블은 존재하지만 데이터가 없습니다.")
+            
+    except Exception as e:
+        st.error(f"❌ 테이블 구조 확인 실패: {str(e)}") 

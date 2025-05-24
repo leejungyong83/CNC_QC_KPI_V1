@@ -9,13 +9,13 @@ def get_supabase_client() -> Client:
     try:
         # 환경변수에서 Supabase 설정 가져오기
         supabase_url = os.getenv('SUPABASE_URL')
-        supabase_key = os.getenv('SUPABASE_ANON_KEY')
+        supabase_key = os.getenv('SUPABASE_KEY')
         
         # 환경변수가 없으면 Streamlit secrets에서 시도
         if not supabase_url or not supabase_key:
             try:
                 supabase_url = st.secrets.get("SUPABASE_URL")
-                supabase_key = st.secrets.get("SUPABASE_ANON_KEY")
+                supabase_key = st.secrets.get("SUPABASE_KEY")
             except:
                 pass
         

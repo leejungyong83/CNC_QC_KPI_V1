@@ -30,19 +30,40 @@ from pages.defect_type_management import show_defect_type_management
 from pages.supabase_config import show_supabase_config
 from pages.reports import show_reports, show_daily_report, show_weekly_report, show_monthly_report, show_yearly_report, show_dashboard as show_report_dashboard
 
-# .env 파일에서 환경 변수 로드
+# .env 파일에서 환경 변수 로드 (강화된 버전)
 try:
-    # .env 파일이 있으면 로드
-    load_dotenv()
+    # 여러 경로에서 .env 파일 로드 시도
+    possible_env_paths = [
+        '.env',
+        'C:/CURSOR/QC_KPI/.env',
+        os.path.join(os.getcwd(), '.env'),
+        os.path.expanduser('~/.streamlit/.env')
+    ]
     
-    # .env 파일이 없으면 기본값 설정
-    if not os.environ.get("SUPABASE_URL") or os.environ.get("SUPABASE_URL") == "your_supabase_url":
+    env_loaded = False
+    for env_path in possible_env_paths:
+        if os.path.exists(env_path):
+            load_dotenv(env_path, override=True)
+            env_loaded = True
+            break
+    
+    # 환경변수 값 확인
+    SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+    SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
+    
+    # .env 파일이 없거나 비어있으면 기본값 설정
+    if not SUPABASE_URL or SUPABASE_URL == "your_supabase_url":
         os.environ["SUPABASE_URL"] = "your_supabase_url"
-    if not os.environ.get("SUPABASE_KEY") or os.environ.get("SUPABASE_KEY") == "your_supabase_key":
+    if not SUPABASE_KEY or SUPABASE_KEY == "your_supabase_key":
         os.environ["SUPABASE_KEY"] = "your_supabase_key"
-        
-    # 로드 상태 확인 (디버깅용 - 개발 시에만 표시)
-    # st.write(f"디버그: SUPABASE_URL={os.environ.get('SUPABASE_URL', '설정안됨')[:30]}...")
+    
+    # 디버그 정보 (필요시 활성화)
+    if False:  # 디버그 모드 비활성화
+        st.sidebar.write(f"🔧 ENV 로드됨: {env_loaded}")
+        st.sidebar.write(f"🔧 SUPABASE_URL: {bool(SUPABASE_URL and SUPABASE_URL != 'your_supabase_url')}")
+        st.sidebar.write(f"🔧 SUPABASE_KEY: {bool(SUPABASE_KEY and SUPABASE_KEY != 'your_supabase_key')}")
+        st.sidebar.write(f"🔧 실제 URL: {SUPABASE_URL[:50]}..." if SUPABASE_URL else "URL 없음")
+        st.sidebar.write(f"🔧 실제 KEY: {SUPABASE_KEY[:20]}..." if SUPABASE_KEY else "KEY 없음")
     
 except Exception as e:
     st.error(f"환경 변수 로드 중 오류 발생: {str(e)}")
