@@ -346,7 +346,7 @@ def test_data_insertion():
             "phone": "010-0000-0000",
             "position": "테스터",
             "notes": "테스트용 계정",
-            "password": "test123"
+            "password_hash": "test123_hash"
         }
         
         # 기존 테스트 데이터 삭제 시도
@@ -564,4 +564,32 @@ UPDATE users SET is_active = true WHERE is_active IS NULL;
 ALTER TABLE users DISABLE ROW LEVEL SECURITY;
 """
     
-    st.code(check_and_update_sql, language="sql") 
+    st.code(check_and_update_sql, language="sql")
+    
+    st.markdown("---")
+    st.subheader("🔧 password_hash 컬럼 타입 수정")
+    st.warning("⚠️ password_hash 컬럼이 uuid 타입으로 되어 있어 text 타입으로 변경이 필요합니다:")
+    
+    password_hash_fix_sql = """
+-- 1. 기존 password_hash 컬럼 삭제 (uuid 타입이므로)
+ALTER TABLE users DROP COLUMN IF EXISTS password_hash;
+
+-- 2. 올바른 TEXT 타입으로 password_hash 컬럼 재생성
+ALTER TABLE users ADD COLUMN password_hash TEXT;
+
+-- 3. 인덱스 생성 (성능 향상)
+CREATE INDEX IF NOT EXISTS idx_users_password_hash ON users(password_hash);
+"""
+    
+    st.code(password_hash_fix_sql, language="sql")
+    
+    st.markdown("---")
+    st.subheader("🚀 간단한 해결책: password_hash 없이 진행")
+    st.info("당장 사용자 추가 기능을 사용하려면 password_hash 없이 진행할 수도 있습니다.")
+    
+    no_password_sql = """
+-- password_hash 컬럼을 사용하지 않고 기본 필드만으로 사용자 관리
+-- 필요한 경우 나중에 별도 인증 시스템 구축 가능
+"""
+    
+    st.code(no_password_sql, language="sql") 

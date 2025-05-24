@@ -103,7 +103,7 @@ def upload_sample_users(supabase):
             "phone": "010-1111-1111",
             "position": "시스템 관리자",
             "notes": "시스템 총괄 관리자",
-            "password": "admin123",  # 실제로는 해시화 필요
+            "password_hash": hash_password("admin123"),  # password -> password_hash
             "created_at": "2024-01-01T09:00:00",
             "updated_at": "2024-01-01T09:00:00"
         },
@@ -116,7 +116,7 @@ def upload_sample_users(supabase):
             "phone": "010-2222-2222",
             "position": "품질검사원",
             "notes": "CNC 품질검사 담당",
-            "password": "inspector123",
+            "password_hash": hash_password("inspector123"),  # password -> password_hash
             "created_at": "2024-01-02T09:00:00",
             "updated_at": "2024-01-02T09:00:00"
         },
@@ -129,7 +129,7 @@ def upload_sample_users(supabase):
             "phone": "010-3333-3333",
             "position": "생산팀장",
             "notes": "생산라인 총괄",
-            "password": "manager123",
+            "password_hash": hash_password("manager123"),  # password -> password_hash
             "created_at": "2024-01-03T09:00:00",
             "updated_at": "2024-01-03T09:00:00"
         }
@@ -322,18 +322,21 @@ def show_add_user(supabase):
             
             try:
                 if is_real_supabase:
-                    # 실제 Supabase - 가장 기본적인 필드만 사용
+                    # 실제 Supabase - 가장 안전한 기본 필드만 사용
                     user_data = {
                         "name": name,
                         "email": email,
                         "role": role
                     }
                     
-                    # 부서 정보가 있으면 추가 (조건부)
+                    # 부서 정보가 있으면 추가
                     if 'department' in locals() and department:
                         user_data["department"] = department
                     
-                    # 비밀번호 해시화해서 저장
+                    # is_active 기본값 설정
+                    user_data["is_active"] = True
+                    
+                    # password_hash를 TEXT 타입으로 수정했으므로 다시 활성화
                     user_data["password_hash"] = hash_password(password)
                         
                 else:
@@ -344,7 +347,7 @@ def show_add_user(supabase):
                         "role": role,
                         "department": department if 'department' in locals() else "",
                         "is_active": is_active,
-                        "password": password,
+                        "password_hash": hash_password(password),  # password -> password_hash
                         "created_at": datetime.now().isoformat(),
                         "updated_at": datetime.now().isoformat()
                     }
