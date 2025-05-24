@@ -322,31 +322,19 @@ def show_add_user(supabase):
             
             try:
                 if is_real_supabase:
-                    # 실제 Supabase - 안전한 방식으로 데이터 구성
+                    # 실제 Supabase - 가장 기본적인 필드만 사용
                     user_data = {
                         "name": name,
                         "email": email,
                         "role": role
                     }
                     
-                    # 선택적 컬럼들 - 존재하는 경우에만 추가
-                    optional_fields = {
-                        "department": department if 'department' in locals() and department else None,
-                        "password": password,
-                        "is_active": True,
-                        "created_at": datetime.now().isoformat()
-                    }
+                    # 부서 정보가 있으면 추가 (조건부)
+                    if 'department' in locals() and department:
+                        user_data["department"] = department
                     
-                    # 실제 테이블에 존재하는 컬럼만 추가
-                    for field_name, field_value in optional_fields.items():
-                        if field_value is not None:
-                            try:
-                                # 각 컬럼이 존재하는지 확인
-                                test_response = supabase.table('users').select(field_name).limit(1).execute()
-                                user_data[field_name] = field_value
-                            except:
-                                # 컬럼이 존재하지 않으면 무시
-                                pass
+                    # 비밀번호 해시화해서 저장
+                    user_data["password_hash"] = hash_password(password)
                         
                 else:
                     # 더미 모드 - 전체 필드 사용
@@ -460,8 +448,8 @@ def show_edit_user(supabase):
                     if is_real_supabase:
                         # 실제 Supabase - 기본 role만 사용
                         current_role = selected_user.get('role', 'user')
-                        role_index = ["user", "admin"].index(current_role) if current_role in ["user", "admin"] else 0
-                        role = st.selectbox("역할", ["user", "admin"], index=role_index)
+                        role_index = ["user", "inspector"].index(current_role) if current_role in ["user", "inspector"] else 0
+                        role = st.selectbox("역할", ["user", "inspector"], index=role_index)
                     else:
                         # 더미 모드 - 전체 role 사용
                         current_role = selected_user.get('role', 'user')
@@ -475,8 +463,12 @@ def show_edit_user(supabase):
                 if change_password:
                     new_password = st.text_input("새 비밀번호", type="password")
                 
-                # 추가 필드들 - 더미 모드에서만 표시
-                if not is_real_supabase:
+                # 추가 필드들
+                if is_real_supabase:
+                    # 실제 Supabase - 기본 필드 표시
+                    department = st.text_input("부서", value=selected_user.get('department', ''))
+                else:
+                    # 더미 모드 - 전체 필드 표시
                     with st.expander("추가 정보"):
                         department = st.text_input("부서", value=selected_user.get('department', ''))
                         phone = st.text_input("전화번호", value=selected_user.get('phone', ''))
@@ -506,6 +498,10 @@ def show_edit_user(supabase):
                                 "is_active": is_active,
                                 "updated_at": datetime.now().isoformat()
                             }
+                            
+                            # 부서 정보 추가
+                            if 'department' in locals() and department is not None:
+                                update_data["department"] = department
                         else:
                             # 더미 모드 - 전체 필드 사용
                             update_data = {
@@ -555,7 +551,7 @@ ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
 
 -- 새로운 role 제약 조건 추가
 ALTER TABLE users ADD CONSTRAINT users_role_check 
-CHECK (role IN ('user', 'admin', 'manager', 'inspector'));
+CHECK (role IN ('user', 'inspector'));
                             """, language="sql")
                         elif "23514" in error_message:
                             st.warning("⚠️ 데이터베이스 제약 조건 위반입니다.")
