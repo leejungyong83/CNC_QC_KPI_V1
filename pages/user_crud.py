@@ -262,11 +262,11 @@ def show_add_user(supabase):
     # 실제 Supabase 연결인지 확인
     is_real_supabase = not hasattr(supabase, '_init_session_state')
     
+    # 연결 테스트
     if is_real_supabase:
-        # 실제 Supabase 테이블 구조 확인
         try:
-            # 빈 쿼리로 테이블 구조 확인
-            response = supabase.table('users').select('*').limit(1).execute()
+            # 간단한 연결 테스트
+            test_response = supabase.table('users').select('*').limit(1).execute()
             st.info("✅ Supabase users 테이블에 연결되었습니다.")
         except Exception as e:
             st.error(f"❌ users 테이블 연결 오류: {str(e)}")
@@ -279,18 +279,20 @@ def show_add_user(supabase):
         
         with col1:
             email = st.text_input("이메일 *", placeholder="user@example.com")
+            name = st.text_input("이름 *", placeholder="홍길동")
             if is_real_supabase:
                 # 실제 Supabase - 현재 테이블 구조에 맞춤
-                username = st.text_input("사용자명 *", placeholder="hong_gildong")
-                role = st.selectbox("역할", ["user", "admin"], index=0)
+                employee_id = st.text_input("사원번호", placeholder="EMP001")
+                role = st.selectbox("역할", ["user", "inspector"], index=0)
             else:
                 # 더미 모드 - 기존 구조 유지
-                name = st.text_input("이름 *", placeholder="홍길동")
                 role = st.selectbox("역할 *", ["user", "admin", "manager", "inspector"])
         
         with col2:
             password = st.text_input("비밀번호 *", type="password")
-            if not is_real_supabase:
+            if is_real_supabase:
+                department = st.text_input("부서", placeholder="생산팀")
+            else:
                 is_active = st.checkbox("활성 상태", value=True)
         
         # 추가 필드들 (선택사항) - 더미 모드에서만 표시
@@ -304,16 +306,10 @@ def show_add_user(supabase):
         submitted = st.form_submit_button("사용자 추가", type="primary")
         
         if submitted:
-            if is_real_supabase:
-                # 실제 Supabase - 필수 필드 검증
-                if not email or not username or not password:
-                    st.error("이메일, 사용자명, 비밀번호는 필수 항목입니다.")
-                    return
-            else:
-                # 더미 모드 - 필수 필드 검증
-                if not email or not name or not password:
-                    st.error("이메일, 이름, 비밀번호는 필수 항목입니다.")
-                    return
+            # 필수 필드 검증
+            if not email or not name or not password:
+                st.error("이메일, 이름, 비밀번호는 필수 항목입니다.")
+                return
             
             # 이메일 형식 검증
             if not validate_email(email):
@@ -322,22 +318,28 @@ def show_add_user(supabase):
             
             try:
                 if is_real_supabase:
-                    # 실제 Supabase - 현재 테이블 구조에 맞춤
+                    # 실제 Supabase - 현재 테이블 구조에 맞춤 (name, employee_id, department 사용)
                     user_data = {
-                        "username": username,
+                        "name": name,
                         "email": email,
                         "role": role,
-                        "password_hash": hash_password(password),  # password_hash 컬럼 사용
                         "created_at": datetime.now().isoformat()
                     }
                     
-                    # name 컬럼이 있으면 추가
+                    # employee_id가 입력되었으면 추가
+                    if 'employee_id' in locals() and employee_id:
+                        user_data["employee_id"] = employee_id
+                    
+                    # department가 입력되었으면 추가
+                    if 'department' in locals() and department:
+                        user_data["department"] = department
+                    
+                    # 비밀번호는 별도 처리 (테이블에 password 컬럼이 있는 경우에만)
                     try:
-                        # 테이블에 name 컬럼이 있는지 확인
-                        test_response = supabase.table('users').select('name').limit(1).execute()
-                        user_data["name"] = username  # username을 name으로도 저장
+                        test_response = supabase.table('users').select('password').limit(1).execute()
+                        user_data["password"] = password
                     except:
-                        pass  # name 컬럼이 없으면 무시
+                        pass  # password 컬럼이 없으면 무시
                     
                     # is_active 컬럼이 있으면 추가
                     try:
@@ -345,6 +347,7 @@ def show_add_user(supabase):
                         user_data["is_active"] = True
                     except:
                         pass  # is_active 컬럼이 없으면 무시
+                        
                 else:
                     # 더미 모드 - 전체 필드 사용
                     user_data = {
@@ -370,10 +373,7 @@ def show_add_user(supabase):
                 response = supabase.table('users').insert(user_data).execute()
                 
                 if response.data:
-                    if is_real_supabase:
-                        st.success(f"사용자 '{username}' ({email})이(가) 성공적으로 추가되었습니다!")
-                    else:
-                        st.success(f"사용자 '{name}' ({email})이(가) 성공적으로 추가되었습니다!")
+                    st.success(f"사용자 '{name}' ({email})이(가) 성공적으로 추가되었습니다!")
                     st.rerun()
                 else:
                     st.error("사용자 추가에 실패했습니다.")
@@ -390,7 +390,7 @@ def show_add_user(supabase):
                     st.warning("⚠️ RLS 정책 오류입니다.")
                     st.code("ALTER TABLE users DISABLE ROW LEVEL SECURITY;", language="sql")
                 elif "duplicate key value violates unique constraint" in error_message:
-                    st.warning("⚠️ 이미 존재하는 이메일 또는 사용자명입니다.")
+                    st.warning("⚠️ 이미 존재하는 이메일 또는 사원번호입니다.")
                 elif "violates check constraint" in error_message and "role" in error_message:
                     st.warning("⚠️ Role 제약 조건 오류입니다.")
                     st.info("💡 다음 SQL을 실행하여 role 제약 조건을 수정하세요:")

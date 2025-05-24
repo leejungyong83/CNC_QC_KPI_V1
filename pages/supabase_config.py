@@ -278,6 +278,25 @@ def test_connection():
             else:
                 st.error("❌ Supabase에 연결되지 않았습니다.")
 
+    # 추가 기능들
+    st.markdown("---")
+    st.subheader("📋 데이터베이스 테이블 관리")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("📋 users 테이블 생성 가이드", use_container_width=True):
+            show_create_users_table_guide()
+    
+    with col2:
+        if st.button("🏗️ 기존 users 테이블 생성", use_container_width=True):
+            create_users_table()
+    
+    with col3:
+        if st.button("🔍 테이블 구조 확인", use_container_width=True):
+            client = get_supabase_client()
+            check_table_structure(client)
+
 def create_users_table():
     """users 테이블을 생성하거나 수정합니다."""
     try:
@@ -386,4 +405,79 @@ def check_table_structure(client):
             st.info("테이블은 존재하지만 데이터가 없습니다.")
             
     except Exception as e:
-        st.error(f"❌ 테이블 구조 확인 실패: {str(e)}") 
+        st.error(f"❌ 테이블 구조 확인 실패: {str(e)}")
+
+def show_create_users_table_guide():
+    """users 테이블 생성 가이드를 표시합니다.""" 
+    st.subheader("📋 users 테이블 생성 가이드")
+    st.info("다음 SQL 스크립트를 Supabase SQL Editor에서 실행하세요:")
+    
+    sql_code = """
+-- users 테이블 생성 (최신 버전)
+CREATE TABLE IF NOT EXISTS users (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    employee_id TEXT UNIQUE,
+    department TEXT,
+    role TEXT DEFAULT 'user' CHECK (role IN ('user', 'inspector')),
+    is_active BOOLEAN DEFAULT true,
+    password TEXT,
+    phone TEXT,
+    position TEXT,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 인덱스 생성
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_employee_id ON users(employee_id);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_users_is_active ON users(is_active);
+CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
+
+-- 기본 트리거 (업데이트 시간 자동 갱신)
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_users_updated_at 
+BEFORE UPDATE ON users 
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- RLS 비활성화 (개발용)
+ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+
+-- 샘플 사용자 데이터 삽입
+INSERT INTO users (name, email, employee_id, department, role, phone, position, notes, password) 
+VALUES 
+('홍길동', 'hong@company.com', 'EMP001', '생산팀', 'user', '010-1234-5678', '기술자', '생산라인 담당', 'user123'),
+('김검사', 'kim@company.com', 'EMP002', '품질팀', 'inspector', '010-2345-6789', '품질검사원', '품질검사 담당', 'inspector123'),
+('이직원', 'lee@company.com', 'EMP003', '제조팀', 'user', '010-3456-7890', '조립원', '제품 조립', 'user456')
+ON CONFLICT (email) DO NOTHING;
+"""
+    
+    st.code(sql_code, language="sql")
+    
+    st.markdown("---")
+    st.subheader("🔧 기존 users 테이블 role 제약 조건 수정")
+    st.info("기존 users 테이블이 있는 경우, role 제약 조건을 수정하려면 아래 SQL을 실행하세요:")
+    
+    role_fix_sql = """
+-- 기존 role 제약 조건 삭제
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+
+-- 새로운 role 제약 조건 추가 (user, inspector만 허용)
+ALTER TABLE users ADD CONSTRAINT users_role_check 
+CHECK (role IN ('user', 'inspector'));
+
+-- 기존 admin, manager 역할을 user로 변경 (필요한 경우)
+UPDATE users SET role = 'user' WHERE role IN ('admin', 'manager');
+"""
+    
+    st.code(role_fix_sql, language="sql") 
