@@ -392,20 +392,63 @@ def fix_constraints():
 def check_table_structure(client):
     """테이블 구조를 확인합니다."""
     try:
+        st.subheader("📊 users 테이블 구조 분석")
+        
         # 테이블 정보 조회
         response = client.table('users').select('*').limit(1).execute()
         st.success("✅ users 테이블에 접근 가능합니다!")
         
         if response.data:
-            st.subheader("테이블 구조")
-            columns = list(response.data[0].keys())
-            for col in columns:
-                st.write(f"- `{col}`")
+            st.subheader("현재 테이블 컬럼")
+            current_columns = list(response.data[0].keys())
+            
+            # 필수 컬럼과 선택적 컬럼 정의
+            required_columns = ['id', 'email', 'name', 'role']
+            optional_columns = ['department', 'is_active', 'password', 'phone', 'position', 'notes', 'created_at', 'updated_at']
+            
+            st.write("**현재 존재하는 컬럼:**")
+            for col in current_columns:
+                if col in required_columns:
+                    st.write(f"✅ `{col}` (필수)")
+                elif col in optional_columns:
+                    st.write(f"✅ `{col}` (선택)")
+                else:
+                    st.write(f"ℹ️ `{col}` (기타)")
+            
+            # 누락된 컬럼 확인
+            missing_required = [col for col in required_columns if col not in current_columns]
+            missing_optional = [col for col in optional_columns if col not in current_columns]
+            
+            if missing_required:
+                st.error("**누락된 필수 컬럼:**")
+                for col in missing_required:
+                    st.write(f"❌ `{col}`")
+            
+            if missing_optional:
+                st.warning("**누락된 선택적 컬럼:**")
+                for col in missing_optional:
+                    st.write(f"⚠️ `{col}`")
+                    
+                st.info("💡 누락된 컬럼을 추가하려면 위의 '기존 테이블 구조 확인 및 안전 업데이트' SQL을 사용하세요.")
+            
+            if not missing_required and not missing_optional:
+                st.success("🎉 모든 필요한 컬럼이 존재합니다!")
+                
         else:
             st.info("테이블은 존재하지만 데이터가 없습니다.")
+            st.warning("빈 테이블이므로 컬럼 구조를 정확히 확인하기 어렵습니다.")
             
     except Exception as e:
-        st.error(f"❌ 테이블 구조 확인 실패: {str(e)}")
+        error_message = str(e)
+        st.error(f"❌ 테이블 구조 확인 실패: {error_message}")
+        
+        if "does not exist" in error_message:
+            st.warning("⚠️ users 테이블이 존재하지 않습니다.")
+            st.info("💡 'users 테이블 생성 가이드'를 사용하여 새 테이블을 생성하세요.")
+        elif "could not find" in error_message:
+            st.warning("⚠️ 테이블에 접근할 수 없거나 권한이 부족합니다.")
+            st.info("💡 RLS 정책을 확인하거나 비활성화하세요.")
+            st.code("ALTER TABLE users DISABLE ROW LEVEL SECURITY;", language="sql")
 
 def show_create_users_table_guide():
     """users 테이블 생성 가이드를 표시합니다.""" 
@@ -480,4 +523,45 @@ CHECK (role IN ('user', 'inspector'));
 UPDATE users SET role = 'user' WHERE role IN ('admin', 'manager');
 """
     
-    st.code(role_fix_sql, language="sql") 
+    st.code(role_fix_sql, language="sql")
+    
+    st.markdown("---")
+    st.subheader("🔍 기존 테이블 구조 확인 및 안전 업데이트")
+    st.info("기존 users 테이블이 있는 경우, 구조를 확인하고 안전하게 업데이트하세요:")
+    
+    check_and_update_sql = """
+-- 1. 현재 테이블 구조 확인
+SELECT column_name, data_type, is_nullable, column_default
+FROM information_schema.columns 
+WHERE table_name = 'users' 
+ORDER BY ordinal_position;
+
+-- 2. 안전하게 누락된 컬럼 추가
+ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS department TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS position TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+
+-- 3. 기존 role 제약 조건 업데이트
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+ALTER TABLE users ADD CONSTRAINT users_role_check 
+CHECK (role IN ('user', 'inspector'));
+
+-- 4. 기존 admin/manager 역할을 user로 변경
+UPDATE users SET role = 'user' WHERE role IN ('admin', 'manager');
+
+-- 5. name 컬럼이 비어있는 경우 email에서 추출
+UPDATE users SET name = SPLIT_PART(email, '@', 1) WHERE name IS NULL OR name = '';
+
+-- 6. is_active가 NULL인 경우 true로 설정
+UPDATE users SET is_active = true WHERE is_active IS NULL;
+
+-- 7. RLS 비활성화 (개발용)
+ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+"""
+    
+    st.code(check_and_update_sql, language="sql") 

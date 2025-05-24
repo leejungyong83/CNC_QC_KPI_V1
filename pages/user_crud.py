@@ -262,12 +262,18 @@ def show_add_user(supabase):
     # 실제 Supabase 연결인지 확인
     is_real_supabase = not hasattr(supabase, '_init_session_state')
     
-    # 연결 테스트
+    # 연결 테스트 및 테이블 구조 확인
     if is_real_supabase:
         try:
-            # 간단한 연결 테스트
+            # 테이블 구조 확인을 위한 더 안전한 접근
             test_response = supabase.table('users').select('*').limit(1).execute()
             st.info("✅ Supabase users 테이블에 연결되었습니다.")
+            
+            # 실제 테이블 컬럼 확인
+            if test_response.data:
+                available_columns = list(test_response.data[0].keys())
+                st.info(f"사용 가능한 컬럼: {', '.join(available_columns)}")
+            
         except Exception as e:
             st.error(f"❌ users 테이블 연결 오류: {str(e)}")
             if "does not exist" in str(e):
@@ -281,18 +287,16 @@ def show_add_user(supabase):
             email = st.text_input("이메일 *", placeholder="user@example.com")
             name = st.text_input("이름 *", placeholder="홍길동")
             if is_real_supabase:
-                # 실제 Supabase - 현재 테이블 구조에 맞춤
-                employee_id = st.text_input("사원번호", placeholder="EMP001")
+                # 실제 Supabase - 기본 필드만 사용
                 role = st.selectbox("역할", ["user", "inspector"], index=0)
+                department = st.text_input("부서", placeholder="생산팀")
             else:
                 # 더미 모드 - 기존 구조 유지
                 role = st.selectbox("역할 *", ["user", "admin", "manager", "inspector"])
         
         with col2:
             password = st.text_input("비밀번호 *", type="password")
-            if is_real_supabase:
-                department = st.text_input("부서", placeholder="생산팀")
-            else:
+            if not is_real_supabase:
                 is_active = st.checkbox("활성 상태", value=True)
         
         # 추가 필드들 (선택사항) - 더미 모드에서만 표시
@@ -318,35 +322,31 @@ def show_add_user(supabase):
             
             try:
                 if is_real_supabase:
-                    # 실제 Supabase - 현재 테이블 구조에 맞춤 (name, employee_id, department 사용)
+                    # 실제 Supabase - 안전한 방식으로 데이터 구성
                     user_data = {
                         "name": name,
                         "email": email,
-                        "role": role,
+                        "role": role
+                    }
+                    
+                    # 선택적 컬럼들 - 존재하는 경우에만 추가
+                    optional_fields = {
+                        "department": department if 'department' in locals() and department else None,
+                        "password": password,
+                        "is_active": True,
                         "created_at": datetime.now().isoformat()
                     }
                     
-                    # employee_id가 입력되었으면 추가
-                    if 'employee_id' in locals() and employee_id:
-                        user_data["employee_id"] = employee_id
-                    
-                    # department가 입력되었으면 추가
-                    if 'department' in locals() and department:
-                        user_data["department"] = department
-                    
-                    # 비밀번호는 별도 처리 (테이블에 password 컬럼이 있는 경우에만)
-                    try:
-                        test_response = supabase.table('users').select('password').limit(1).execute()
-                        user_data["password"] = password
-                    except:
-                        pass  # password 컬럼이 없으면 무시
-                    
-                    # is_active 컬럼이 있으면 추가
-                    try:
-                        test_response = supabase.table('users').select('is_active').limit(1).execute()
-                        user_data["is_active"] = True
-                    except:
-                        pass  # is_active 컬럼이 없으면 무시
+                    # 실제 테이블에 존재하는 컬럼만 추가
+                    for field_name, field_value in optional_fields.items():
+                        if field_value is not None:
+                            try:
+                                # 각 컬럼이 존재하는지 확인
+                                test_response = supabase.table('users').select(field_name).limit(1).execute()
+                                user_data[field_name] = field_value
+                            except:
+                                # 컬럼이 존재하지 않으면 무시
+                                pass
                         
                 else:
                     # 더미 모드 - 전체 필드 사용
@@ -374,6 +374,8 @@ def show_add_user(supabase):
                 
                 if response.data:
                     st.success(f"사용자 '{name}' ({email})이(가) 성공적으로 추가되었습니다!")
+                    # 추가된 데이터 확인
+                    st.json(response.data[0])
                     st.rerun()
                 else:
                     st.error("사용자 추가에 실패했습니다.")
@@ -386,11 +388,30 @@ def show_add_user(supabase):
                 if "could not find" in error_message.lower() and "column" in error_message.lower():
                     st.warning("⚠️ 테이블 구조 불일치 오류입니다.")
                     st.info("💡 'Supabase 설정' 메뉴에서 올바른 users 테이블을 생성하거나, 기존 테이블 구조를 확인하세요.")
+                    
+                    # 기존 테이블 구조에 맞는 안전한 SQL 제안
+                    st.subheader("🔧 기존 테이블 구조 확인 및 수정")
+                    st.code("""
+-- 1. 기존 테이블 구조 확인
+SELECT column_name, data_type 
+FROM information_schema.columns 
+WHERE table_name = 'users';
+
+-- 2. 누락된 컬럼 추가 (필요한 경우)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS department TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+
+-- 3. role 제약 조건 수정
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+ALTER TABLE users ADD CONSTRAINT users_role_check 
+CHECK (role IN ('user', 'inspector'));
+                    """, language="sql")
+                    
                 elif "violates row-level security policy" in error_message:
                     st.warning("⚠️ RLS 정책 오류입니다.")
                     st.code("ALTER TABLE users DISABLE ROW LEVEL SECURITY;", language="sql")
                 elif "duplicate key value violates unique constraint" in error_message:
-                    st.warning("⚠️ 이미 존재하는 이메일 또는 사원번호입니다.")
+                    st.warning("⚠️ 이미 존재하는 이메일입니다.")
                 elif "violates check constraint" in error_message and "role" in error_message:
                     st.warning("⚠️ Role 제약 조건 오류입니다.")
                     st.info("💡 다음 SQL을 실행하여 role 제약 조건을 수정하세요:")
@@ -400,7 +421,7 @@ ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
 
 -- 새로운 role 제약 조건 추가
 ALTER TABLE users ADD CONSTRAINT users_role_check 
-CHECK (role IN ('user', 'admin', 'manager', 'inspector'));
+CHECK (role IN ('user', 'inspector'));
                     """, language="sql")
                 elif "23514" in error_message:
                     st.warning("⚠️ 데이터베이스 제약 조건 위반입니다.")
