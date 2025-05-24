@@ -24,7 +24,6 @@ from pages.inspection_input import show_inspection_input
 from pages.item_management import show_production_model_management
 from pages.defect_management import show_defect_management
 from pages.inspector_management import show_inspector_management
-from pages.user_management import show_user_management
 from pages.user_crud import show_user_crud
 from pages.defect_type_management import show_defect_type_management
 from pages.supabase_config import show_supabase_config
@@ -131,11 +130,8 @@ else:
     # 관리자 메뉴
     with st.sidebar.expander("⚙️ 관리자 메뉴", expanded=True):
         admin_cols = st.columns(1)
-        if admin_cols[0].button("👤 관리자 및 사용자 관리", key="user_mgmt", use_container_width=True):
+        if admin_cols[0].button("👥 사용자 관리", key="user_crud", use_container_width=True):
             st.session_state.selected_menu = "사용자 관리"
-            st.rerun()
-        if admin_cols[0].button("🗄️ 사용자 DB 관리", key="user_crud", use_container_width=True):
-            st.session_state.selected_menu = "사용자 DB 관리"
             st.rerun()
         if admin_cols[0].button("👷 검사자 등록 및 관리", key="inspector_mgmt", use_container_width=True):
             st.session_state.selected_menu = "검사자 등록 및 관리"
@@ -248,9 +244,6 @@ else:
         st.info("이 기능은 개발 중입니다.")
         
     elif menu == "사용자 관리":
-        show_user_management()
-        
-    elif menu == "사용자 DB 관리":
         show_user_crud()
         
     elif menu == "Supabase 설정":
