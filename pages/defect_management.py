@@ -5,6 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from pages.item_management import get_all_models
 from pages.inspector_management import get_all_inspectors
+from utils.defect_utils import get_defect_type_names
 
 def show_defect_management():
     """불량 관리 화면 표시"""
@@ -45,7 +46,9 @@ def show_defect_list():
     with col2:
         equipment = st.selectbox("설비", ["모든 설비", "설비1", "설비2", "설비3", "설비4", "설비5"])
     with col3:
-        defect_type = st.selectbox("불량 유형", ["모든 유형", "치수 불량", "표면 결함", "가공 불량", "재료 결함", "기타"])
+        # 데이터베이스에서 불량 유형 가져오기
+        defect_types = get_defect_type_names()
+        defect_type = st.selectbox("불량 유형", ["모든 유형"] + defect_types)
     with col4:
         status = st.selectbox("처리 상태", ["모든 상태", "미처리", "처리 중", "완료"])
     
@@ -307,6 +310,9 @@ def get_defects():
         # 등록된 모델이 없으면 기본 모델 사용
         models = [f"모델{chr(65 + i)}" for i in range(5)]  # 모델A, 모델B, ...
     
+    # 불량 유형 목록 가져오기
+    defect_types = get_defect_type_names()
+    
     data = []
     for i in range(1, 31):
         date = today - timedelta(days=i % 30)
@@ -314,7 +320,7 @@ def get_defects():
         shift = ["주간", "야간"][i % 2]  # 발생조: 주간/야간
         model = models[i % len(models)]  # 등록된 모델 중에서 선택
         equipment = f"설비{i % 5 + 1}"
-        defect_type = ["치수 불량", "표면 결함", "가공 불량", "재료 결함", "기타"][i % 5]
+        defect_type = defect_types[i % len(defect_types)]
         analysis_result = ["부품 교체 필요", "설비 조정 필요", "공구 교체 필요", "검사 필요", "기타"][i % 5]
         cause = ["공구 마모", "진동", "재료 결함", "작업자 실수", "설비 오류"][i % 5]
         action = ["공구 교체", "설비 조정", "재료 교체", "작업자 교육", "설비 수리"][i % 5]

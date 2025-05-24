@@ -2,10 +2,6 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# 페이지 진입 시 캐시 비우기
-st.cache_data.clear()
-st.cache_resource.clear()
-
 # 초기 데이터 정의
 INITIAL_ADMIN_DATA = [
     {"id": "dlwjddyd83@gmail.com", "name": "이정봉", "role": "관리자"},
@@ -27,20 +23,25 @@ INITIAL_USER_DATA = [
     {"id": "nguyenthiphuong20102004@gmail.com", "name": "NGUYỄN THỊ PHƯƠNG", "department": "CNC"},
 ]
 
-# 세션 상태 초기화
-if "admin_data" not in st.session_state:
-    st.session_state.admin_data = INITIAL_ADMIN_DATA.copy()
-if "user_data" not in st.session_state:
-    st.session_state.user_data = INITIAL_USER_DATA.copy()
-if "admin_edit_success" not in st.session_state:
-    st.session_state.admin_edit_success = False
-if "admin_add_success" not in st.session_state:
-    st.session_state.admin_add_success = False
-if "admin_delete_success" not in st.session_state:
-    st.session_state.admin_delete_success = False
+def init_session_state():
+    """세션 상태를 초기화합니다."""
+    if "admin_data" not in st.session_state:
+        st.session_state.admin_data = INITIAL_ADMIN_DATA.copy()
+    if "user_data" not in st.session_state:
+        st.session_state.user_data = INITIAL_USER_DATA.copy()
+    if "admin_edit_success" not in st.session_state:
+        st.session_state.admin_edit_success = False
+    if "admin_add_success" not in st.session_state:
+        st.session_state.admin_add_success = False
+    if "admin_delete_success" not in st.session_state:
+        st.session_state.admin_delete_success = False
 
 # 관리자 수정 콜백 함수
 def update_admin_info(admin_id, new_name, new_role, change_password=False, new_password=None):
+    # 세션 상태 확인
+    if not hasattr(st.session_state, 'admin_data'):
+        st.session_state.admin_data = INITIAL_ADMIN_DATA.copy()
+    
     for i, admin in enumerate(st.session_state.admin_data):
         if admin["id"] == admin_id:
             st.session_state.admin_data[i]["name"] = new_name
@@ -51,6 +52,10 @@ def update_admin_info(admin_id, new_name, new_role, change_password=False, new_p
 
 # 관리자 추가 콜백 함수
 def add_new_admin(admin_id, admin_name, password):
+    # 세션 상태 확인
+    if not hasattr(st.session_state, 'admin_data'):
+        st.session_state.admin_data = INITIAL_ADMIN_DATA.copy()
+    
     st.session_state.admin_data.append({
         "id": admin_id,
         "name": admin_name,
@@ -60,11 +65,22 @@ def add_new_admin(admin_id, admin_name, password):
 
 # 관리자 삭제 콜백 함수
 def delete_admin(admin_id):
+    # 세션 상태 확인
+    if not hasattr(st.session_state, 'admin_data'):
+        st.session_state.admin_data = INITIAL_ADMIN_DATA.copy()
+    
     st.session_state.admin_data = [admin for admin in st.session_state.admin_data if admin["id"] != admin_id]
     st.session_state.admin_delete_success = True
 
 def show_user_management():
     """관리자 및 사용자 관리 페이지를 표시합니다."""
+    # 세션 상태 초기화
+    init_session_state()
+    
+    # 페이지 진입 시 캐시 비우기
+    st.cache_data.clear()
+    st.cache_resource.clear()
+    
     st.header("🔑 관리자 및 사용자 관리")
     
     # 탭 생성
@@ -80,12 +96,17 @@ def show_user_management():
 
 def show_admin_management():
     """관리자 관리 탭의 내용을 표시합니다."""
+    # 세션 상태 초기화 (안전을 위해 다시 호출)
+    init_session_state()
+    
     # 관리자 계정 목록
     st.subheader("관리자 계정 목록")
     
     # 관리자 목록 표시
+    admin_data = getattr(st.session_state, 'admin_data', INITIAL_ADMIN_DATA.copy())
+    
     st.dataframe(
-        st.session_state.admin_data,
+        admin_data,
         column_config={
             "id": st.column_config.TextColumn("아이디", width="medium"),
             "name": st.column_config.TextColumn("이름", width="medium"),
@@ -96,15 +117,15 @@ def show_admin_management():
     )
     
     # 성공 메시지 표시
-    if st.session_state.admin_edit_success:
+    if getattr(st.session_state, 'admin_edit_success', False):
         st.success("관리자 정보가 수정되었습니다.")
         st.session_state.admin_edit_success = False
     
-    if st.session_state.admin_add_success:
+    if getattr(st.session_state, 'admin_add_success', False):
         st.success("새 관리자가 추가되었습니다.")
         st.session_state.admin_add_success = False
         
-    if st.session_state.admin_delete_success:
+    if getattr(st.session_state, 'admin_delete_success', False):
         st.success("관리자가 삭제되었습니다.")
         st.session_state.admin_delete_success = False
     
@@ -138,13 +159,13 @@ def show_admin_management():
         st.subheader("관리자 정보 수정")
         
         # 수정할 관리자 선택
-        admin_options = [f"{admin['id']}" for admin in st.session_state.admin_data]
+        admin_options = [f"{admin['id']}" for admin in admin_data]
         if admin_options:  # 관리자가 존재할 경우에만
             selected_admin_id = st.selectbox("수정할 관리자 선택", admin_options, key="admin_edit_select")
             
             # 선택된 관리자의 정보 가져오기
             selected_admin_info = None
-            for admin in st.session_state.admin_data:
+            for admin in admin_data:
                 if admin['id'] == selected_admin_id:
                     selected_admin_info = admin
                     break
@@ -202,12 +223,17 @@ def show_admin_management():
 
 def show_user_tab_content():
     """사용자 관리 탭의 내용을 표시합니다."""
+    # 세션 상태 초기화 (안전을 위해 다시 호출)
+    init_session_state()
+    
     # 사용자 계정 목록
     st.subheader("사용자 계정 목록")
     
     # 사용자 목록 표시
+    user_data = getattr(st.session_state, 'user_data', INITIAL_USER_DATA.copy())
+    
     st.dataframe(
-        st.session_state.user_data,
+        user_data,
         column_config={
             "id": st.column_config.TextColumn("아이디", width="medium"),
             "name": st.column_config.TextColumn("이름", width="medium"),
@@ -239,7 +265,10 @@ def show_user_tab_content():
         elif user_password != user_password_confirm:
             st.error("비밀번호가 일치하지 않습니다.")
         else:
-            # 세션 상태에 새 사용자 추가
+            # 세션 상태 확인 후 새 사용자 추가
+            if not hasattr(st.session_state, 'user_data'):
+                st.session_state.user_data = INITIAL_USER_DATA.copy()
+            
             st.session_state.user_data.append({
                 "id": user_id,
                 "name": user_name,
@@ -252,12 +281,15 @@ def show_user_tab_content():
     st.subheader("사용자 삭제")
     
     # 삭제할 사용자 선택
-    user_options = [f"{user['id']}" for user in st.session_state.user_data]
+    user_options = [f"{user['id']}" for user in user_data]
     if user_options:  # 사용자가 존재할 경우에만
         selected_user = st.selectbox("삭제할 사용자 선택", user_options)
         
         if st.button("삭제", key="user_delete_button"):
-            # 세션 상태에서 사용자 삭제
-            st.session_state.user_data = [user for user in st.session_state.user_data if user['id'] != selected_user]
-            st.success(f"사용자 {selected_user}이(가) 삭제되었습니다.")
-            st.rerun() 
+            # 세션 상태 확인 후 사용자 삭제
+            if hasattr(st.session_state, 'user_data'):
+                st.session_state.user_data = [user for user in st.session_state.user_data if user['id'] != selected_user]
+                st.success(f"사용자 {selected_user}이(가) 삭제되었습니다.")
+                st.rerun()
+    else:
+        st.info("삭제할 사용자가 없습니다.") 

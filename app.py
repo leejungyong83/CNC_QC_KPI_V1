@@ -3,10 +3,20 @@ import pandas as pd
 import os
 from dotenv import load_dotenv
 from datetime import datetime
+import io
 
 # 캐시 관련 설정 (서버 시작 시 캐시 완전히 비우기)
 st.cache_data.clear()
 st.cache_resource.clear()
+
+# React 오류 방지를 위한 추가 설정
+try:
+    if 'cache_cleared' not in st.session_state:
+        st.cache_data.clear()
+        st.cache_resource.clear()
+        st.session_state.cache_cleared = True
+except:
+    pass
 
 # 모듈 가져오기
 from pages.dashboard import show_dashboard
@@ -15,10 +25,28 @@ from pages.item_management import show_production_model_management
 from pages.defect_management import show_defect_management
 from pages.inspector_management import show_inspector_management
 from pages.user_management import show_user_management
+from pages.user_crud import show_user_crud
+from pages.defect_type_management import show_defect_type_management
+from pages.supabase_config import show_supabase_config
 from pages.reports import show_reports, show_daily_report, show_weekly_report, show_monthly_report, show_yearly_report, show_dashboard as show_report_dashboard
 
-# 환경 변수 로드
-load_dotenv()
+# .env 파일에서 환경 변수 로드
+try:
+    # .env 파일이 있으면 로드
+    load_dotenv()
+    
+    # .env 파일이 없으면 기본값 설정
+    if not os.environ.get("SUPABASE_URL") or os.environ.get("SUPABASE_URL") == "your_supabase_url":
+        os.environ["SUPABASE_URL"] = "your_supabase_url"
+    if not os.environ.get("SUPABASE_KEY") or os.environ.get("SUPABASE_KEY") == "your_supabase_key":
+        os.environ["SUPABASE_KEY"] = "your_supabase_key"
+        
+    # 로드 상태 확인 (디버깅용 - 개발 시에만 표시)
+    # st.write(f"디버그: SUPABASE_URL={os.environ.get('SUPABASE_URL', '설정안됨')[:30]}...")
+    
+except Exception as e:
+    st.error(f"환경 변수 로드 중 오류 발생: {str(e)}")
+    st.info("기본값으로 계속 진행합니다.")
 
 # 페이지 설정
 st.set_page_config(
@@ -85,11 +113,20 @@ else:
         if admin_cols[0].button("👤 관리자 및 사용자 관리", key="user_mgmt", use_container_width=True):
             st.session_state.selected_menu = "사용자 관리"
             st.rerun()
+        if admin_cols[0].button("🗄️ 사용자 DB 관리", key="user_crud", use_container_width=True):
+            st.session_state.selected_menu = "사용자 DB 관리"
+            st.rerun()
         if admin_cols[0].button("👷 검사자 등록 및 관리", key="inspector_mgmt", use_container_width=True):
             st.session_state.selected_menu = "검사자 등록 및 관리"
             st.rerun()
         if admin_cols[0].button("🏭 생산모델 관리", key="model_mgmt", use_container_width=True):
             st.session_state.selected_menu = "생산모델 관리"
+            st.rerun()
+        if admin_cols[0].button("📋 불량 유형 관리", key="defect_type_mgmt", use_container_width=True):
+            st.session_state.selected_menu = "불량 유형 관리"
+            st.rerun()
+        if admin_cols[0].button("🔧 Supabase 설정", key="supabase_config", use_container_width=True):
+            st.session_state.selected_menu = "Supabase 설정"
             st.rerun()
     
     # 사용자 메뉴
@@ -176,6 +213,9 @@ else:
     elif menu == "불량 관리":
         show_defect_management()
         
+    elif menu == "불량 유형 관리":
+        show_defect_type_management()
+        
     elif menu == "검사자 등록 및 관리":
         show_inspector_management()
         
@@ -188,6 +228,12 @@ else:
         
     elif menu == "사용자 관리":
         show_user_management()
+        
+    elif menu == "사용자 DB 관리":
+        show_user_crud()
+        
+    elif menu == "Supabase 설정":
+        show_supabase_config()
         
     # 리포트 관련 메뉴
     elif menu == "일간 리포트":

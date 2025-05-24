@@ -1,12 +1,14 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import io
 from PIL import Image
 import uuid
 from pages.inspector_management import get_all_inspectors
 from pages.item_management import get_all_models
 from utils.supabase_client import get_supabase_client
+from utils.defect_utils import get_defect_type_names
+import random
 
 def show_inspection_input():
     """검사 데이터 입력 화면 표시"""
@@ -68,66 +70,108 @@ def show_inspection_data():
         search_lot = st.text_input("LOT 번호", key="search_lot")
     
     if st.button("검색", key="search_button"):
-        # 세션 상태에 저장된 검사 데이터 가져오기
-        if "inspection_data" in st.session_state and st.session_state.inspection_data:
-            # 데이터프레임으로 변환
-            df = pd.DataFrame(st.session_state.inspection_data)
+        # 세션 상태에 데이터가 없으면 샘플 데이터 생성
+        if "inspection_data" not in st.session_state or not st.session_state.inspection_data:
+            # 샘플 데이터 생성
+            st.session_state.inspection_data = generate_sample_inspection_data()
+            st.info("시스템에 저장된 검사 데이터가 없어서 샘플 데이터를 생성했습니다.")
             
-            # 필터 적용
+        # 데이터프레임으로 변환
+        df = pd.DataFrame(st.session_state.inspection_data)
+        
+        # 필터 적용
+        if len(df) > 0:
+            # 날짜 필터링
+            df["검사일자"] = pd.to_datetime(df["검사일자"])
+            start_date = pd.to_datetime(start_date)
+            end_date = pd.to_datetime(end_date)
+            df = df[(df["검사일자"] >= start_date) & (df["검사일자"] <= end_date)]
+            
+            # 모델 필터링
+            if selected_model != "전체":
+                df = df[df["모델명"] == selected_model]
+            
+            # 검사자 필터링
+            if selected_inspector != "전체":
+                df = df[df["검사원"] == selected_inspector]
+            
+            # LOT 번호 필터링
+            if search_lot:
+                df = df[df["LOT 번호"].str.contains(search_lot, case=False)]
+            
+            # 결과 표시
             if len(df) > 0:
-                # 날짜 필터링
-                df["검사일자"] = pd.to_datetime(df["검사일자"])
-                start_date = pd.to_datetime(start_date)
-                end_date = pd.to_datetime(end_date)
-                df = df[(df["검사일자"] >= start_date) & (df["검사일자"] <= end_date)]
+                # 날짜 형식을 문자열로 변환
+                df["검사일자"] = df["검사일자"].dt.strftime("%Y-%m-%d")
                 
-                # 모델 필터링
-                if selected_model != "전체":
-                    df = df[df["모델명"] == selected_model]
+                # 불필요한 컬럼 제거
+                display_columns = [
+                    "검사일자", "검사원", "LOT 번호", "공정", "모델명", 
+                    "계획 수량", "총 검사 수량", "불량 수량"
+                ]
                 
-                # 검사자 필터링
-                if selected_inspector != "전체":
-                    df = df[df["검사원"] == selected_inspector]
+                # 불량률 컬럼 추가
+                df["불량률"] = df.apply(
+                    lambda row: f"{(row['불량 수량'] / row['총 검사 수량'] * 100):.1f}%" 
+                    if row['총 검사 수량'] > 0 else "0.0%", 
+                    axis=1
+                )
                 
-                # LOT 번호 필터링
-                if search_lot:
-                    df = df[df["LOT 번호"].str.contains(search_lot, case=False)]
+                display_columns.append("불량률")
                 
-                # 결과 표시
-                if len(df) > 0:
-                    # 날짜 형식을 문자열로 변환
-                    df["검사일자"] = df["검사일자"].dt.strftime("%Y-%m-%d")
-                    
-                    # 불필요한 컬럼 제거
-                    display_columns = [
-                        "검사일자", "검사원", "LOT 번호", "공정", "모델명", 
-                        "계획 수량", "총 검사 수량", "불량 수량"
-                    ]
-                    
-                    # 불량률 컬럼 추가
-                    df["불량률"] = df.apply(
-                        lambda row: f"{(row['불량 수량'] / row['총 검사 수량'] * 100):.1f}%" 
-                        if row['총 검사 수량'] > 0 else "0.0%", 
-                        axis=1
-                    )
-                    
-                    display_columns.append("불량률")
-                    
-                    # 화면에 표시
-                    st.dataframe(
-                        df[display_columns], 
-                        use_container_width=True,
-                        hide_index=True
-                    )
-                    
-                    # 검색 결과 요약
-                    st.success(f"총 {len(df)}건의 검사 데이터가 검색되었습니다.")
-                else:
-                    st.info("검색 조건에 맞는 데이터가 없습니다.")
+                # 화면에 표시
+                st.dataframe(
+                    df[display_columns], 
+                    use_container_width=True,
+                    hide_index=True
+                )
+                
+                # 검색 결과 요약
+                st.success(f"총 {len(df)}건의 검사 데이터가 검색되었습니다.")
             else:
-                st.info("저장된 검사 데이터가 없습니다.")
+                st.info("검색 조건에 맞는 데이터가 없습니다.")
         else:
-            st.info("저장된 검사 데이터가 없습니다. 실적 데이터 입력 탭에서 데이터를 추가해주세요.")
+            st.info("저장된 검사 데이터가 없습니다.")
+            
+def generate_sample_inspection_data():
+    """샘플 검사 데이터 생성"""
+    today = datetime.now().date()
+    
+    # 검사자 목록 (임시)
+    inspectors = ["김검사", "이검사", "박검사"]
+    
+    # 모델 목록 (임시)
+    models = ["PA1", "PA2", "PA3", "B6", "B6M"]
+    
+    # 공정 목록 (임시)
+    processes = ["IQC", "CNC1_PQC", "CNC2_PQC", "OQC", "CNC OQC"]
+    
+    # 샘플 데이터 생성
+    data = []
+    for i in range(20):  # 20개의 샘플 데이터 생성
+        inspection_date = today - timedelta(days=i % 10)  # 최근 10일간 분포
+        inspector = random.choice(inspectors)
+        model = random.choice(models)
+        process = random.choice(processes)
+        planned_qty = random.randint(80, 120)
+        total_inspected = random.randint(70, planned_qty)
+        defect_qty = random.randint(0, int(total_inspected * 0.1))  # 0~10% 불량
+        
+        data.append({
+            "검사원": inspector,
+            "검사일자": inspection_date,
+            "검사원 ID": f"INSP-{str(inspectors.index(inspector) + 1).zfill(3)}",
+            "LOT 번호": f"LOT-{str(i).zfill(4)}",
+            "공정": process,
+            "작업 시간(분)": random.randint(30, 90),
+            "모델명": model,
+            "계획 수량": planned_qty,
+            "총 검사 수량": total_inspected,
+            "불량 수량": defect_qty,
+            "저장일시": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        })
+    
+    return data
 
 def show_data_input_form():
     """검사 데이터 입력 폼 표시"""
@@ -268,7 +312,8 @@ def show_data_input_form():
         st.subheader("불량 정보")
         
         # 불량 유형 선택 (복수 선택 가능)
-        defect_types = ["치수 불량", "표면 결함", "가공 불량", "재료 결함", "기타"]
+        # 데이터베이스에서 불량 유형 가져오기
+        defect_types = get_defect_type_names()
         selected_defects = st.multiselect("불량 유형 선택", defect_types, key="defect_types")
         
         # 선택된 불량 유형에 대해 각각 수량 입력 필드 생성

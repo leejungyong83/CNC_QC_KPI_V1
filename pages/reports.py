@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import random
 import numpy as np
+from utils.defect_utils import get_defect_type_names
 
 def show_reports():
     """보고서 페이지를 표시합니다."""
@@ -197,36 +198,31 @@ def show_dashboard(end_date, model, chart_type):
 def show_daily_report(end_date, model, chart_type):
     """일간 리포트를 표시합니다."""
     st.subheader("일간 생산 품질 리포트")
+    st.write(f"기준일: {end_date.strftime('%Y-%m-%d')}")
     
-    # 일간 데이터는 시간별로 표시
-    st.write(f"날짜: {end_date.strftime('%Y-%m-%d')}")
-    
-    # 모델 필터링 메시지
     if model != "모든 모델":
         st.write(f"선택된 모델: {model}")
     
-    # 일간 데이터 생성
+    # 시간별 데이터 생성
     hourly_data = generate_hourly_data(end_date, model)
     
     # 데이터 표시
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("시간별 생산량 및 불량률")
-        
-        # 차트 타입에 따라 다른 차트 표시
-        if chart_type in ["라인 차트", "복합 차트"]:
-            fig = px.line(
-                hourly_data, 
-                x="hour", 
-                y="production_count",
-                markers=True,
-                title="시간별 생산량"
-            )
-            st.plotly_chart(fig, use_container_width=True)
+        st.subheader("시간대별 생산량 및 불량률")
         
         if chart_type in ["바 차트", "복합 차트"]:
             fig = px.bar(
+                hourly_data, 
+                x="hour", 
+                y=["production_count", "defect_count"],
+                barmode="group",
+                title="시간별 생산량 및 불량수"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            fig = px.line(
                 hourly_data, 
                 x="hour", 
                 y="defect_rate",
@@ -238,14 +234,13 @@ def show_daily_report(end_date, model, chart_type):
     with col2:
         st.subheader("검사 항목별 불량 현황")
         
+        # 데이터베이스에서 불량 유형 가져오기
+        defect_types = get_defect_type_names()
+        
         # 검사 항목별 불량 데이터 생성
-        defect_by_item = {
-            "치수 불량": random.randint(5, 15),
-            "표면 결함": random.randint(3, 10),
-            "가공 불량": random.randint(2, 8),
-            "재료 결함": random.randint(1, 5),
-            "기타": random.randint(0, 3)
-        }
+        defect_by_item = {}
+        for defect_type in defect_types:
+            defect_by_item[defect_type] = random.randint(1, 15)
         
         defect_df = pd.DataFrame({
             "항목": list(defect_by_item.keys()),

@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from utils.defect_utils import get_defect_type_names
+import random
 
 def show_dashboard():
     """KPI 대시보드 화면 표시"""
@@ -59,11 +61,21 @@ def show_dashboard():
         st.plotly_chart(fig, use_container_width=True)
         
         st.subheader("주요 불량 유형")
-        # 불량 유형 데이터 (예시)
+        # 불량 유형 데이터베이스에서 가져오기
+        defect_types = get_defect_type_names()
+        
+        # 각 불량 유형별 임의의 발생 건수 생성 (데모용)
+        defect_counts = [random.randint(3, 15) for _ in range(len(defect_types))]
+        
+        # DataFrame 생성
         defect_data = pd.DataFrame({
-            "불량 유형": ["치수 불량", "표면 결함", "가공 불량", "재료 결함", "기타"],
-            "발생 건수": [15, 12, 8, 5, 3]
+            "불량 유형": defect_types,
+            "발생 건수": defect_counts
         })
+        
+        # 발생 건수 기준으로 내림차순 정렬
+        defect_data = defect_data.sort_values(by="발생 건수", ascending=False).reset_index(drop=True)
+        
         fig = px.bar(defect_data, x="불량 유형", y="발생 건수", title="불량 유형별 발생 건수")
         st.plotly_chart(fig, use_container_width=True)
         
