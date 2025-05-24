@@ -25,6 +25,7 @@ from pages.item_management import show_production_model_management
 from pages.defect_management import show_defect_management
 from pages.inspector_management import show_inspector_management
 from pages.user_crud import show_user_crud
+from pages.admin_management import show_admin_management
 from pages.defect_type_management import show_defect_type_management
 from pages.supabase_config import show_supabase_config
 from pages.reports import show_reports, show_daily_report, show_weekly_report, show_monthly_report, show_yearly_report, show_dashboard as show_report_dashboard
@@ -132,6 +133,9 @@ else:
         admin_cols = st.columns(1)
         if admin_cols[0].button("👥 사용자 관리", key="user_crud", use_container_width=True):
             st.session_state.selected_menu = "사용자 관리"
+            st.rerun()
+        if admin_cols[0].button("👨‍💼 관리자 관리", key="admin_mgmt", use_container_width=True):
+            st.session_state.selected_menu = "관리자 관리"
             st.rerun()
         if admin_cols[0].button("👷 검사자 등록 및 관리", key="inspector_mgmt", use_container_width=True):
             st.session_state.selected_menu = "검사자 등록 및 관리"
@@ -245,6 +249,9 @@ else:
         
     elif menu == "사용자 관리":
         show_user_crud()
+        
+    elif menu == "관리자 관리":
+        show_admin_management()
         
     elif menu == "Supabase 설정":
         show_supabase_config()
