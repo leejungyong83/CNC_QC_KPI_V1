@@ -22,8 +22,7 @@ except:
 from pages.dashboard import show_dashboard
 from pages.inspection_input import show_inspection_input
 from pages.item_management import show_production_model_management
-from pages.defect_management import show_defect_management
-from pages.inspector_management import show_inspector_management
+from pages.inspector_crud import show_inspector_crud
 from pages.user_crud import show_user_crud
 from pages.admin_management import show_admin_management
 from pages.defect_type_management import show_defect_type_management
@@ -156,12 +155,6 @@ else:
         if user_cols[0].button("📝 검사 데이터 입력", key="inspection_input", use_container_width=True):
             st.session_state.selected_menu = "검사 데이터 입력"
             st.rerun()
-        if user_cols[0].button("❌ 불량 관리", key="defect_mgmt", use_container_width=True):
-            st.session_state.selected_menu = "불량 관리"
-            st.rerun()
-        if user_cols[0].button("🔧 설비 정보", key="equipment_info", use_container_width=True):
-            st.session_state.selected_menu = "설비 정보"
-            st.rerun()
     
     # 리포트 메뉴
     with st.sidebar.expander("📊 리포트 메뉴", expanded=True):
@@ -231,21 +224,14 @@ else:
     elif menu == "검사 데이터 입력":
         show_inspection_input()
         
-    elif menu == "불량 관리":
-        show_defect_management()
-        
     elif menu == "불량 유형 관리":
         show_defect_type_management()
         
     elif menu == "검사자 등록 및 관리":
-        show_inspector_management()
+        show_inspector_crud()
         
     elif menu == "보고서":
         show_reports()
-        
-    elif menu == "설비 정보":
-        st.header("설비 정보")
-        st.info("이 기능은 개발 중입니다.")
         
     elif menu == "사용자 관리":
         show_user_crud()
