@@ -20,7 +20,7 @@ except:
 
 # 모듈 가져오기
 from pages.dashboard import show_dashboard
-from pages.inspection_input import show_inspection_input
+from pages.inspection_crud import show_inspection_crud
 from pages.item_management import show_production_model_management
 from pages.inspector_crud import show_inspector_crud
 from pages.user_crud import show_user_crud
@@ -222,7 +222,7 @@ else:
         show_production_model_management()
         
     elif menu == "검사 데이터 입력":
-        show_inspection_input()
+        show_inspection_crud()
         
     elif menu == "불량 유형 관리":
         show_defect_type_management()
