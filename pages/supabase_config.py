@@ -278,24 +278,125 @@ def test_connection():
             else:
                 st.error("❌ Supabase에 연결되지 않았습니다.")
 
-    # 추가 기능들
+    # 로그인 문제 해결을 위한 추가 기능
     st.markdown("---")
-    st.subheader("📋 데이터베이스 테이블 관리")
+    st.subheader("🔐 로그인 문제 해결")
     
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("📋 users 테이블 생성 가이드", use_container_width=True):
-            show_create_users_table_guide()
-    
-    with col2:
-        if st.button("🏗️ 기존 users 테이블 생성", use_container_width=True):
-            create_users_table()
+    col3, col4 = st.columns(2)
     
     with col3:
-        if st.button("🔍 테이블 구조 확인", use_container_width=True):
+        if st.button("👥 기본 사용자 추가", use_container_width=True, key="add_basic_users"):
+            add_basic_users()
+    
+    with col4:
+        if st.button("🔍 사용자 목록 확인", use_container_width=True, key="check_users"):
+            check_current_users()
+
+    col5, col6 = st.columns(2)
+    
+    with col5:
+        if st.button("🔧 기존 사용자 비밀번호 수정", use_container_width=True, key="fix_passwords"):
+            fix_existing_user_passwords()
+    
+    with col6:
+        if st.button("📋 테이블 구조 확인", use_container_width=True, key="check_structure_2"):
             client = get_supabase_client()
-            check_table_structure(client)
+            if type(client).__name__ != "DummySupabaseClient":
+                check_table_structure(client)
+            else:
+                st.error("❌ Supabase에 연결되지 않았습니다.")
+
+    # 종합 로그인 문제 해결 가이드
+    st.markdown("---")
+    st.subheader("📚 로그인 문제 해결 가이드")
+    
+    with st.expander("🔍 단계별 문제 해결 방법"):
+        st.markdown("""
+        ### 1단계: 연결 상태 확인
+        - 위의 "🔍 연결 테스트" 버튼을 클릭하여 Supabase 연결 상태 확인
+        - 연결이 안 되면 URL과 KEY 설정을 다시 확인
+        
+        ### 2단계: 사용자 데이터 확인
+        - "🔍 사용자 목록 확인" 버튼으로 현재 데이터베이스의 사용자 확인
+        - 사용자가 없으면 "👥 기본 사용자 추가" 버튼으로 테스트 계정 생성
+        
+        ### 3단계: 비밀번호 문제 해결
+        - "🔧 기존 사용자 비밀번호 수정" 버튼으로 알려진 사용자들의 비밀번호 업데이트
+        - 또는 새로운 사용자를 "👥 기본 사용자 추가"로 생성
+        
+        ### 4단계: 테이블 구조 확인
+        - "📋 테이블 구조 확인" 버튼으로 users 테이블 구조 점검
+        - 필요한 컬럼이 없으면 아래 SQL 실행
+        
+        ### 5단계: 로그인 시도
+        - 메인 화면에서 다음 계정들로 로그인 시도:
+          - `admin@company.com` / `admin123`
+          - `user@company.com` / `user123`
+          - `inspector@company.com` / `inspector123`
+          - `diwjddyd83@gmail.com` / `01100110`
+          - `hong@company.com` / `user123`
+        """)
+    
+    with st.expander("🛠️ 테이블 구조 수정 SQL"):
+        st.code("""
+-- users 테이블 기본 구조 확인 및 수정
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user';
+
+-- RLS 비활성화 (개발용)
+ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+
+-- 기본 사용자 추가 (없는 경우)
+INSERT INTO users (email, name, role, password, is_active) 
+VALUES 
+('admin@company.com', '관리자', 'admin', 'admin123', true),
+('user@company.com', '사용자', 'user', 'user123', true),
+('inspector@company.com', '검사원', 'inspector', 'inspector123', true)
+ON CONFLICT (email) DO NOTHING;
+        """, language="sql")
+    
+    with st.expander("🚨 긴급 복구 방법"):
+        st.markdown("""
+        **모든 방법이 실패한 경우:**
+        
+        1. **RLS 정책 비활성화 (가장 가능성 높은 해결책)**:
+           ```sql
+           ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+           ```
+        
+        2. **오프라인 모드 사용**: 
+           - Supabase 연결을 끊고 기본 테스트 계정으로 로그인
+           - `admin@company.com` / `admin123`
+        
+        3. **테이블 완전 재생성**:
+           ```sql
+           DROP TABLE IF EXISTS users CASCADE;
+           CREATE TABLE users (
+               id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+               email TEXT UNIQUE NOT NULL,
+               name TEXT NOT NULL,
+               role TEXT DEFAULT 'user',
+               password TEXT,
+               password_hash TEXT,
+               is_active BOOLEAN DEFAULT true,
+               created_at TIMESTAMPTZ DEFAULT now()
+           );
+           ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+           ```
+        
+        4. **환경 변수 초기화**:
+           - "🗑️ 설정 초기화" 버튼으로 Supabase 설정 리셋
+           - 다시 올바른 URL과 KEY 입력
+        """)
+
+    # RLS 문제 해결을 위한 긴급 안내
+    st.markdown("---")
+    st.error("🚨 **로그인 문제가 지속되는 경우 RLS 정책을 비활성화하세요:**")
+    st.code("ALTER TABLE users DISABLE ROW LEVEL SECURITY;", language="sql")
+    st.info("💡 이 SQL을 Supabase SQL Editor에서 실행하면 즉시 로그인 문제가 해결됩니다.")
 
 def create_users_table():
     """users 테이블을 생성하거나 수정합니다."""
@@ -592,4 +693,176 @@ CREATE INDEX IF NOT EXISTS idx_users_password_hash ON users(password_hash);
 -- 필요한 경우 나중에 별도 인증 시스템 구축 가능
 """
     
-    st.code(no_password_sql, language="sql") 
+    st.code(no_password_sql, language="sql")
+
+def add_basic_users():
+    """기본 테스트 사용자들을 추가합니다."""
+    try:
+        client = get_supabase_client()
+        if type(client).__name__ == "DummySupabaseClient":
+            st.error("❌ Supabase에 연결되지 않았습니다.")
+            return
+        
+        st.info("기본 사용자 계정을 추가합니다...")
+        
+        # 기본 사용자 데이터
+        basic_users = [
+            {
+                "email": "admin@company.com",
+                "name": "관리자",
+                "role": "admin",
+                "department": "관리팀",
+                "is_active": True,
+                "password": "admin123"
+            },
+            {
+                "email": "user@company.com", 
+                "name": "사용자",
+                "role": "user",
+                "department": "생산팀",
+                "is_active": True,
+                "password": "user123"
+            },
+            {
+                "email": "inspector@company.com",
+                "name": "검사원", 
+                "role": "inspector",
+                "department": "품질팀",
+                "is_active": True,
+                "password": "inspector123"
+            }
+        ]
+        
+        success_count = 0
+        for user in basic_users:
+            try:
+                # 기존 사용자 확인
+                existing = client.table('users').select('email').eq('email', user['email']).execute()
+                
+                if not existing.data:
+                    # 새 사용자 추가
+                    response = client.table('users').insert(user).execute()
+                    if response.data:
+                        success_count += 1
+                        st.success(f"✅ {user['name']} ({user['email']}) 추가됨")
+                    else:
+                        st.warning(f"⚠️ {user['email']} 추가 실패")
+                else:
+                    st.info(f"ℹ️ {user['email']} 이미 존재함")
+                    
+            except Exception as e:
+                st.error(f"❌ {user['email']} 추가 중 오류: {str(e)}")
+        
+        if success_count > 0:
+            st.success(f"🎉 총 {success_count}개의 사용자가 추가되었습니다!")
+        
+    except Exception as e:
+        st.error(f"❌ 기본 사용자 추가 실패: {str(e)}")
+
+def check_current_users():
+    """현재 데이터베이스의 사용자 목록을 확인합니다."""
+    try:
+        client = get_supabase_client()
+        if type(client).__name__ == "DummySupabaseClient":
+            st.error("❌ Supabase에 연결되지 않았습니다.")
+            return
+        
+        st.info("현재 사용자 목록을 조회합니다...")
+        
+        # 사용자 목록 조회
+        response = client.table('users').select('email, name, role, is_active, password, password_hash').execute()
+        
+        if response.data:
+            st.success(f"✅ {len(response.data)}명의 사용자를 찾았습니다:")
+            
+            import pandas as pd
+            df = pd.DataFrame(response.data)
+            
+            # 비밀번호 정보 마스킹
+            if 'password' in df.columns:
+                df['password'] = df['password'].apply(lambda x: "***" if x else "없음")
+            if 'password_hash' in df.columns:
+                df['password_hash'] = df['password_hash'].apply(lambda x: "***" if x else "없음")
+            
+            st.dataframe(df, use_container_width=True)
+            
+            # 로그인 가능한 계정 안내
+            active_users = [user for user in response.data if user.get('is_active', True)]
+            if active_users:
+                st.subheader("🔑 로그인 가능한 계정:")
+                for user in active_users:
+                    has_password = user.get('password') or user.get('password_hash')
+                    password_info = "비밀번호 설정됨" if has_password else "비밀번호 없음"
+                    st.write(f"- **{user.get('name', 'Unknown')}**: `{user.get('email')}` ({password_info})")
+            
+        else:
+            st.warning("⚠️ 사용자가 없습니다. 기본 사용자를 추가하세요.")
+            
+    except Exception as e:
+        st.error(f"❌ 사용자 목록 조회 실패: {str(e)}")
+        
+        # 테이블 구조 문제일 가능성 안내
+        if "does not exist" in str(e).lower():
+            st.info("💡 users 테이블이 존재하지 않는 것 같습니다. 위의 '🏗️ users 테이블 생성' 버튼을 클릭하세요.")
+        elif "column" in str(e).lower():
+            st.info("💡 테이블 구조에 문제가 있을 수 있습니다. 테이블을 다시 생성해보세요.")
+
+def fix_existing_user_passwords():
+    """기존 사용자들의 비밀번호를 알려진 값으로 업데이트합니다."""
+    try:
+        client = get_supabase_client()
+        if type(client).__name__ == "DummySupabaseClient":
+            st.error("❌ Supabase에 연결되지 않았습니다.")
+            return
+        
+        st.info("기존 사용자들의 비밀번호를 업데이트합니다...")
+        
+        # 알려진 사용자들의 비밀번호 매핑
+        password_updates = {
+            'diwjddyd83@gmail.com': '01100110',
+            'zetooo1972@gmail.com': '01100110', 
+            'jinuk.cho@gmail.com': '01100110',
+            'hong@company.com': 'user123',
+            'kim@company.com': 'inspector123',
+            'lee@company.com': 'user456'
+        }
+        
+        success_count = 0
+        for email, password in password_updates.items():
+            try:
+                # 사용자 존재 확인
+                existing = client.table('users').select('email, name').eq('email', email).execute()
+                
+                if existing.data:
+                    # 비밀번호 해시 생성
+                    import hashlib
+                    password_hash = hashlib.sha256(password.encode()).hexdigest()
+                    
+                    # 비밀번호 업데이트 (password와 password_hash 둘 다)
+                    update_data = {
+                        'password': password,
+                        'password_hash': password_hash,
+                        'is_active': True
+                    }
+                    
+                    response = client.table('users').update(update_data).eq('email', email).execute()
+                    
+                    if response.data:
+                        success_count += 1
+                        st.success(f"✅ {email} 비밀번호 업데이트됨 (비밀번호: {password})")
+                    else:
+                        st.warning(f"⚠️ {email} 업데이트 실패")
+                else:
+                    st.info(f"ℹ️ {email} 사용자가 존재하지 않음")
+                    
+            except Exception as e:
+                st.error(f"❌ {email} 업데이트 중 오류: {str(e)}")
+        
+        if success_count > 0:
+            st.success(f"🎉 총 {success_count}개의 사용자 비밀번호가 업데이트되었습니다!")
+            st.info("💡 이제 다음 계정들로 로그인할 수 있습니다:")
+            for email, password in password_updates.items():
+                st.write(f"- {email} / {password}")
+        
+    except Exception as e:
+        st.error(f"❌ 비밀번호 업데이트 실패: {str(e)}") 

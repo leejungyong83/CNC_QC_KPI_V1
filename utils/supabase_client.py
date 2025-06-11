@@ -69,6 +69,7 @@ class DummySupabaseClient:
                     "phone": "010-1234-5678",
                     "position": "시스템 관리자",
                     "notes": "시스템 총 관리자",
+                    "password_hash": "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918",  # admin
                     "created_at": "2024-01-01T00:00:00",
                     "updated_at": "2024-01-01T00:00:00"
                 },
@@ -82,6 +83,7 @@ class DummySupabaseClient:
                     "phone": "010-2345-6789",
                     "position": "검사원",
                     "notes": "품질검사 담당",
+                    "password_hash": "04f8996da763b7a969b1028ee3007569eaf3a635486ddab211d512c85b9df8fb",  # user
                     "created_at": "2024-01-02T00:00:00",
                     "updated_at": "2024-01-02T00:00:00"
                 },
@@ -95,6 +97,7 @@ class DummySupabaseClient:
                     "phone": "010-3456-7890",
                     "position": "팀장",
                     "notes": "품질팀 매니저",
+                    "password_hash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",  # manager
                     "created_at": "2024-01-03T00:00:00",
                     "updated_at": "2024-01-03T00:00:00"
                 }
@@ -328,7 +331,17 @@ class DummyTable:
         
         elif self.table_name == "users":
             if self._operation == "select":
+                # 세션 상태 강제 초기화
+                self.client._init_session_state()
                 users = self.client.get_users()
+                
+                # 이메일 필터링 처리
+                if self._where_column == "email" and self._where_value:
+                    filtered_users = []
+                    for user in users:
+                        if user.get("email") == self._where_value:
+                            filtered_users.append(user)
+                    return Response(filtered_users)
                 return Response(users)
             elif self._operation == "insert":
                 result = self.client.add_user(self._data)

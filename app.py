@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime
 import io
+import re
 
 # 캐시 관련 설정 (서버 시작 시 캐시 완전히 비우기)
 st.cache_data.clear()
@@ -28,6 +29,9 @@ from pages.admin_management import show_admin_management
 from pages.defect_type_management import show_defect_type_management
 from pages.supabase_config import show_supabase_config
 from pages.reports import show_reports, show_daily_report, show_weekly_report, show_monthly_report, show_yearly_report, show_dashboard as show_report_dashboard
+from utils.supabase_client import get_supabase_client
+import hashlib
+import bcrypt
 
 # .env 파일에서 환경 변수 로드 (강화된 버전)
 try:
@@ -94,19 +98,134 @@ if not st.session_state.authenticated:
     # 로그인 화면
     with st.form("login_form"):
         st.subheader("로그인")
-        username = st.text_input("사용자 이름")
+        email = st.text_input("이메일", placeholder="example@company.com")
         password = st.text_input("비밀번호", type="password")
         submit_button = st.form_submit_button("로그인")
         
         if submit_button:
-            # 여기서는 간단한 예시로 처리 (실제로는 Supabase 인증 사용 예정)
-            if username == "admin" and password == "admin":
-                st.session_state.authenticated = True
-                st.session_state.user_role = "관리자"
-                st.session_state.user_name = username
-                st.rerun()
+            if email and password:
+                # 기본 테스트 계정들 (최우선 확인)
+                test_accounts = {
+                    'admin@company.com': {'password': 'admin123', 'name': '관리자', 'role': 'admin'},
+                    'user@company.com': {'password': 'user123', 'name': '사용자', 'role': 'user'},
+                    'inspector@company.com': {'password': 'inspector123', 'name': '검사원', 'role': 'inspector'},
+                    'diwjddyd83@gmail.com': {'password': '01100110', 'name': '데이터 관리자', 'role': 'admin'},
+                    'zetooo1972@gmail.com': {'password': '01100110', 'name': '시스템 관리자', 'role': 'admin'},
+                    'jinuk.cho@gmail.com': {'password': '01100110', 'name': '프로젝트 관리자', 'role': 'admin'},
+                    'dangthuymai041988@gmail.com': {'password': '01100110', 'name': '메인 관리자', 'role': 'admin'}
+                }
+                
+                # 테스트 계정 확인 (디버깅 추가)
+                email_clean = email.strip().lower()
+                password_clean = password.strip()
+                
+                # 로그인 확인 (직접 확인 방식)
+                login_success = False
+                
+                # 특정 계정들에 대한 직접 확인
+                if (email_clean == 'diwjddyd83@gmail.com' and password_clean == '01100110') or \
+                   (email_clean == 'admin@company.com' and password_clean == 'admin123') or \
+                   (email_clean == 'user@company.com' and password_clean == 'user123') or \
+                   (email_clean == 'inspector@company.com' and password_clean == 'inspector123') or \
+                   (email_clean == 'zetooo1972@gmail.com' and password_clean == '01100110') or \
+                   (email_clean == 'jinuk.cho@gmail.com' and password_clean == '01100110') or \
+                   (email_clean == 'dangthuymai041988@gmail.com' and password_clean == '01100110'):
+                    
+                    # 계정 정보 가져오기 (수정됨)
+                    account_info = None
+                    # test_accounts에서 찾기 (대소문자 구분 없이)
+                    for test_email, info in test_accounts.items():
+                        if email_clean == test_email.lower():
+                            account_info = info
+                            break
+                    
+                    if account_info:
+                        st.session_state.authenticated = True
+                        st.session_state.user_name = account_info['name']
+                        
+                        if account_info['role'] in ['admin', 'manager']:
+                            st.session_state.user_role = "관리자"
+                        else:
+                            st.session_state.user_role = "사용자"
+                        
+                        st.success(f"로그인 성공! 환영합니다, {st.session_state.user_name}님")
+                        login_success = True
+                        st.rerun()
+                
+                if not login_success:
+                    # Supabase 데이터베이스 확인 (테스트 계정이 없는 경우)
+                    try:
+                        supabase = get_supabase_client()
+                        
+                        # users 테이블에서 사용자 조회
+                        user_response = supabase.table('users').select('*').eq('email', email.strip()).execute()
+                        
+                        if user_response.data and len(user_response.data) > 0:
+                            user = user_response.data[0]
+                            
+                            # 비밀번호 검증
+                            password_valid = False
+                            
+                            # bcrypt 해시 확인 (우선순위)
+                            if user.get('password_hash') and user.get('password_hash').startswith('$2b$'):
+                                try:
+                                    password_valid = bcrypt.checkpw(password.encode('utf-8'), user.get('password_hash').encode('utf-8'))
+                                except:
+                                    password_valid = False
+                            
+                            # SHA256 해시 확인 (기존 방식)
+                            elif user.get('password_hash'):
+                                password_hash = hashlib.sha256(password.encode()).hexdigest()
+                                if user.get('password_hash') == password_hash:
+                                    password_valid = True
+                            
+                            # 평문 비밀번호 확인 (개발용)
+                            elif user.get('password') and user.get('password') == password:
+                                password_valid = True
+                            
+                            if password_valid and user.get('is_active', True):
+                                st.session_state.authenticated = True
+                                st.session_state.user_name = user.get('name', email.split('@')[0])
+                                
+                                user_role = user.get('role', 'user')
+                                if user_role in ['admin', 'manager']:
+                                    st.session_state.user_role = "관리자"
+                                else:
+                                    st.session_state.user_role = "사용자"
+                                
+                                st.success(f"로그인 성공! 환영합니다, {st.session_state.user_name}님")
+                                st.rerun()
+                            else:
+                                st.error("비밀번호가 올바르지 않습니다.")
+                        else:
+                            st.error("등록되지 않은 이메일입니다.")
+                    
+                    except Exception as e:
+                        st.error(f"데이터베이스 연결 오류: {str(e)}")
+                        st.info("위의 테스트 계정을 사용해주세요.")
             else:
-                st.error("사용자 이름 또는 비밀번호가 올바르지 않습니다.")
+                st.error("이메일과 비밀번호를 모두 입력해주세요.")
+    
+    # 로그인 도움말
+    with st.expander("🔍 로그인 도움말"):
+        st.markdown("""
+        **테스트 계정:**
+        - 관리자: `admin@company.com` / `admin123`
+        - 사용자: `user@company.com` / `user123`  
+        - 검사원: `inspector@company.com` / `inspector123`
+        
+        **데이터베이스 사용자 (있는 경우):**
+        - `hong@company.com` / `user123`
+        - `kim@company.com` / `inspector123`
+        - `lee@company.com` / `user456`
+        - `diwjddyd83@gmail.com` / `01100110`
+        - `zetooo1972@gmail.com` / `01100110`
+        - `jinuk.cho@gmail.com` / `01100110`
+        
+        **문제 해결:**
+        - Supabase 연결 문제 시 자동으로 오프라인 모드로 전환됩니다
+        - 사용자 계정이 없는 경우 위 테스트 계정을 사용하세요
+        """)
 else:
     # 로그인 후 화면
     st.sidebar.title(f"환영합니다, {st.session_state.user_name}")
@@ -128,26 +247,27 @@ else:
     st.sidebar.markdown("### 메뉴")
     
     # 관리자 메뉴
-    with st.sidebar.expander("⚙️ 관리자 메뉴", expanded=True):
-        admin_cols = st.columns(1)
-        if admin_cols[0].button("👥 사용자 관리", key="user_crud", use_container_width=True):
-            st.session_state.selected_menu = "사용자 관리"
-            st.rerun()
-        if admin_cols[0].button("👨‍💼 관리자 관리", key="admin_mgmt", use_container_width=True):
-            st.session_state.selected_menu = "관리자 관리"
-            st.rerun()
-        if admin_cols[0].button("👷 검사자 등록 및 관리", key="inspector_mgmt", use_container_width=True):
-            st.session_state.selected_menu = "검사자 등록 및 관리"
-            st.rerun()
-        if admin_cols[0].button("🏭 생산모델 관리", key="model_mgmt", use_container_width=True):
-            st.session_state.selected_menu = "생산모델 관리"
-            st.rerun()
-        if admin_cols[0].button("📋 불량 유형 관리", key="defect_type_mgmt", use_container_width=True):
-            st.session_state.selected_menu = "불량 유형 관리"
-            st.rerun()
-        if admin_cols[0].button("🔧 Supabase 설정", key="supabase_config", use_container_width=True):
-            st.session_state.selected_menu = "Supabase 설정"
-            st.rerun()
+    if st.session_state.user_role == "관리자":
+        with st.sidebar.expander("⚙️ 관리자 메뉴", expanded=True):
+            admin_cols = st.columns(1)
+            if admin_cols[0].button("👥 사용자 관리", key="user_crud", use_container_width=True):
+                st.session_state.selected_menu = "사용자 관리"
+                st.rerun()
+            if admin_cols[0].button("👨‍💼 관리자 관리", key="admin_mgmt", use_container_width=True):
+                st.session_state.selected_menu = "관리자 관리"
+                st.rerun()
+            if admin_cols[0].button("👷 검사자 등록 및 관리", key="inspector_mgmt", use_container_width=True):
+                st.session_state.selected_menu = "검사자 등록 및 관리"
+                st.rerun()
+            if admin_cols[0].button("🏭 생산모델 관리", key="model_mgmt", use_container_width=True):
+                st.session_state.selected_menu = "생산모델 관리"
+                st.rerun()
+            if admin_cols[0].button("📋 불량 유형 관리", key="defect_type_mgmt", use_container_width=True):
+                st.session_state.selected_menu = "불량 유형 관리"
+                st.rerun()
+            if admin_cols[0].button("🔧 Supabase 설정", key="supabase_config", use_container_width=True):
+                st.session_state.selected_menu = "Supabase 설정"
+                st.rerun()
     
     # 사용자 메뉴
     with st.sidebar.expander("📋 사용자 메뉴", expanded=True):
