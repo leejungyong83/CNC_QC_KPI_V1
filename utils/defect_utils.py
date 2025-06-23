@@ -52,7 +52,6 @@ def get_all_defect_types():
         ]
         return pd.DataFrame(default_types)
 
-
 def create_default_defect_types():
     """
     기본 불량 유형을 데이터베이스에 생성합니다.
@@ -77,7 +76,6 @@ def create_default_defect_types():
     except Exception as e:
         # 오류 처리 (로깅 등 필요 시 여기에 추가)
         pass
-
 
 def get_defect_type_names():
     """

@@ -38,58 +38,34 @@ def show_user_crud():
 
 def show_connection_status(supabase):
     """연결 상태를 표시합니다."""
-    if hasattr(supabase, '_init_session_state'):
-        # 더미 클라이언트인 경우
-        st.warning("⚠️ 현재 오프라인 모드로 작동 중입니다. 실제 Supabase와 연결되지 않았습니다.")
-        st.info("💡 실제 데이터베이스 연결을 위해서는 'Supabase 설정' 메뉴에서 올바른 URL과 KEY를 설정하세요.")
-    else:
-        # 실제 Supabase 클라이언트인 경우
-        st.success("✅ Supabase에 연결되었습니다.")
+    st.success("✅ Supabase에 연결되었습니다.")
 
 def show_data_sync(supabase):
     """데이터 동기화 기능을 표시합니다."""
     st.subheader("🔄 데이터 동기화")
     
-    if hasattr(supabase, '_init_session_state'):
-        # 더미 클라이언트인 경우
-        st.warning("현재 오프라인 모드입니다. 실제 Supabase 연결 시 사용할 수 있는 기능입니다.")
-        
-        # 현재 더미 데이터 표시
-        st.subheader("현재 로컬 데이터")
-        dummy_users = supabase.get_users()
-        if dummy_users:
-            df = pd.DataFrame(dummy_users)
-            st.dataframe(df, use_container_width=True)
-            
-            st.info(f"현재 {len(dummy_users)}명의 사용자 데이터가 로컬에 저장되어 있습니다.")
-            st.info("Supabase 연결 후 '데이터 업로드' 버튼을 사용하여 이 데이터를 실제 데이터베이스로 이전할 수 있습니다.")
-        else:
-            st.info("로컬 데이터가 없습니다.")
+    st.success("Supabase에 연결되었습니다.")
     
-    else:
-        # 실제 Supabase 클라이언트인 경우
-        st.success("Supabase에 연결되었습니다.")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader("실제 데이터베이스에서 조회")
-            if st.button("데이터베이스 조회", type="primary"):
-                try:
-                    response = supabase.table('users').select('*').execute()
-                    if response.data:
-                        df = pd.DataFrame(response.data)
-                        st.dataframe(df, use_container_width=True)
-                        st.success(f"데이터베이스에서 {len(response.data)}개의 사용자 데이터를 조회했습니다.")
-                    else:
-                        st.info("데이터베이스에 사용자 데이터가 없습니다.")
-                except Exception as e:
-                    st.error(f"데이터베이스 조회 중 오류 발생: {str(e)}")
-        
-        with col2:
-            st.subheader("샘플 데이터 업로드")
-            if st.button("샘플 사용자 데이터 업로드"):
-                upload_sample_users(supabase)
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("실제 데이터베이스에서 조회")
+        if st.button("데이터베이스 조회", type="primary"):
+            try:
+                response = supabase.table('users').select('*').execute()
+                if response.data:
+                    df = pd.DataFrame(response.data)
+                    st.dataframe(df, use_container_width=True)
+                    st.success(f"데이터베이스에서 {len(response.data)}개의 사용자 데이터를 조회했습니다.")
+                else:
+                    st.info("데이터베이스에 사용자 데이터가 없습니다.")
+            except Exception as e:
+                st.error(f"데이터베이스 조회 중 오류 발생: {str(e)}")
+    
+    with col2:
+        st.subheader("샘플 데이터 업로드")
+        if st.button("샘플 사용자 데이터 업로드"):
+            upload_sample_users(supabase)
 
 def upload_sample_users(supabase):
     """샘플 사용자 데이터를 실제 데이터베이스에 업로드합니다."""
@@ -161,8 +137,8 @@ def show_user_list(supabase):
     """사용자 목록을 표시합니다."""
     st.subheader("📋 사용자 목록")
     
-    # 실제 Supabase 연결인지 확인
-    is_real_supabase = not hasattr(supabase, '_init_session_state')
+    # 실제 Supabase 연결 확인
+    is_real_supabase = True
     
     try:
         # users 테이블에서 모든 사용자 조회
@@ -260,8 +236,7 @@ def show_add_user(supabase):
     st.subheader("➕ 새 사용자 추가")
     
     # 실제 Supabase 연결인지 확인
-    is_real_supabase = not hasattr(supabase, '_init_session_state')
-    
+    is_real_supabase = True
     # 연결 테스트 및 테이블 구조 확인
     if is_real_supabase:
         try:
@@ -425,8 +400,7 @@ def show_edit_user(supabase):
     st.subheader("✏️ 사용자 정보 수정")
     
     # 실제 Supabase 연결인지 확인
-    is_real_supabase = not hasattr(supabase, '_init_session_state')
-    
+    is_real_supabase = True
     try:
         # 사용자 목록 조회
         response = supabase.table('users').select('*').order('name').execute()

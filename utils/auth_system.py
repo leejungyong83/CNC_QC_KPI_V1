@@ -189,7 +189,7 @@ class AuthenticationSystem:
         
         try:
             # 데이터베이스에서 사용자 정보 조회
-            if self.supabase and not hasattr(self.supabase, '_init_session_state'):
+            if self.supabase and not :
                 # 실제 Supabase 사용
                 response = self.supabase.table('users').select('*').eq('email', email).execute()
                 

@@ -1,89 +1,71 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from utils.supabase_client import get_supabase_client
 import re
+from utils.supabase_client import get_supabase_client
 
 def show_admin_management():
-    """관리자 CRUD 관리 페이지를 표시합니다."""
-    st.header("👨‍💼 관리자 데이터베이스 관리")
+    """관리자 관리 화면을 표시합니다."""
+    st.title("👨‍💼 관리자 관리")
     
     # Supabase 클라이언트 가져오기
     supabase = get_supabase_client()
     
-    # 연결 상태 확인 및 표시
+    # 연결 상태 확인
     show_connection_status(supabase)
     
     # 탭 생성
-    list_tab, add_tab, edit_tab, delete_tab, sync_tab = st.tabs(["관리자 목록", "관리자 추가", "관리자 수정", "관리자 삭제", "데이터 동기화"])
+    tabs = st.tabs(["📋 관리자 목록", "➕ 관리자 추가", "✏️ 관리자 수정", "🗑️ 관리자 삭제", "🔄 데이터 동기화"])
     
-    # 관리자 목록 탭
-    with list_tab:
+    with tabs[0]:
         show_admin_list(supabase)
     
-    # 관리자 추가 탭
-    with add_tab:
+    with tabs[1]:
         show_add_admin(supabase)
     
-    # 관리자 수정 탭
-    with edit_tab:
+    with tabs[2]:
         show_edit_admin(supabase)
     
-    # 관리자 삭제 탭
-    with delete_tab:
+    with tabs[3]:
         show_delete_admin(supabase)
     
-    # 데이터 동기화 탭
-    with sync_tab:
+    with tabs[4]:
         show_data_sync(supabase)
 
 def show_connection_status(supabase):
     """연결 상태를 표시합니다."""
-    if hasattr(supabase, '_init_session_state'):
-        # 더미 클라이언트인 경우
-        st.warning("⚠️ 현재 오프라인 모드로 작동 중입니다. 실제 Supabase와 연결되지 않았습니다.")
-        st.info("💡 실제 데이터베이스 연결을 위해서는 'Supabase 설정' 메뉴에서 올바른 URL과 KEY를 설정하세요.")
-    else:
-        # 실제 Supabase 클라이언트인 경우
-        st.success("✅ Supabase에 연결되었습니다.")
+    st.success("✅ Supabase에 연결되었습니다.")
 
 def show_data_sync(supabase):
     """데이터 동기화 기능을 표시합니다."""
     st.subheader("🔄 데이터 동기화")
     
-    if hasattr(supabase, '_init_session_state'):
-        # 더미 클라이언트인 경우
-        st.warning("현재 오프라인 모드입니다. 실제 Supabase 연결 시 사용할 수 있는 기능입니다.")
-        st.info("Supabase 연결 후 관리자 데이터를 관리할 수 있습니다.")
+    st.success("Supabase에 연결되었습니다.")
     
-    else:
-        # 실제 Supabase 클라이언트인 경우
-        st.success("Supabase에 연결되었습니다.")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader("실제 데이터베이스에서 조회")
-            if st.button("관리자 데이터베이스 조회", type="primary"):
-                try:
-                    response = supabase.table('admins').select('*').execute()
-                    if response.data:
-                        df = pd.DataFrame(response.data)
-                        st.dataframe(df, use_container_width=True)
-                        st.success(f"데이터베이스에서 {len(response.data)}개의 관리자 데이터를 조회했습니다.")
-                    else:
-                        st.info("데이터베이스에 관리자 데이터가 없습니다.")
-                except Exception as e:
-                    st.error(f"데이터베이스 조회 중 오류 발생: {str(e)}")
-                    if "does not exist" in str(e):
-                        st.warning("⚠️ admins 테이블이 존재하지 않습니다.")
-                        if st.button("admins 테이블 생성 SQL 보기"):
-                            show_create_admins_table_sql()
-        
-        with col2:
-            st.subheader("샘플 데이터 업로드")
-            if st.button("샘플 관리자 데이터 업로드"):
-                upload_sample_admins(supabase)
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("실제 데이터베이스에서 조회")
+        if st.button("관리자 데이터베이스 조회", type="primary"):
+            try:
+                response = supabase.table('admins').select('*').execute()
+                if response.data:
+                    df = pd.DataFrame(response.data)
+                    st.dataframe(df, use_container_width=True)
+                    st.success(f"데이터베이스에서 {len(response.data)}개의 관리자 데이터를 조회했습니다.")
+                else:
+                    st.info("데이터베이스에 관리자 데이터가 없습니다.")
+            except Exception as e:
+                st.error(f"데이터베이스 조회 중 오류 발생: {str(e)}")
+                if "does not exist" in str(e):
+                    st.warning("⚠️ admins 테이블이 존재하지 않습니다.")
+                    if st.button("admins 테이블 생성 SQL 보기"):
+                        show_create_admins_table_sql()
+    
+    with col2:
+        st.subheader("샘플 데이터 업로드")
+        if st.button("샘플 관리자 데이터 업로드"):
+            upload_sample_admins(supabase)
 
 def show_create_admins_table_sql():
     """admins 테이블 생성 SQL을 표시합니다."""
@@ -154,19 +136,6 @@ def upload_sample_admins(supabase):
             "password": "manager123",
             "created_at": "2024-01-02T09:00:00",
             "updated_at": "2024-01-02T09:00:00"
-        },
-        {
-            "email": "supervisor@company.com",
-            "name": "감독관리자", 
-            "role": "admin",
-            "department": "품질팀",
-            "is_active": True,
-            "phone": "010-3333-3333",
-            "position": "품질팀장",
-            "notes": "품질 관리 감독",
-            "password": "supervisor123",
-            "created_at": "2024-01-03T09:00:00",
-            "updated_at": "2024-01-03T09:00:00"
         }
     ]
     
@@ -199,9 +168,6 @@ def show_admin_list(supabase):
     """관리자 목록을 표시합니다."""
     st.subheader("📋 관리자 목록")
     
-    # 실제 Supabase 연결인지 확인
-    is_real_supabase = not hasattr(supabase, '_init_session_state')
-    
     try:
         # admins 테이블에서 모든 관리자 조회
         response = supabase.table('admins').select('*').order('created_at', desc=True).execute()
@@ -212,77 +178,69 @@ def show_admin_list(supabase):
             
             # 컬럼 순서 정리
             display_columns = []
+            available_columns = {}
+            
             if 'id' in df.columns:
                 display_columns.append('id')
+                available_columns['id'] = 'ID'
             if 'email' in df.columns:
                 display_columns.append('email')
+                available_columns['email'] = '이메일'
             if 'name' in df.columns:
                 display_columns.append('name')
+                available_columns['name'] = '이름'
             if 'role' in df.columns:
                 display_columns.append('role')
+                available_columns['role'] = '권한'
             if 'department' in df.columns:
                 display_columns.append('department')
+                available_columns['department'] = '부서'
             if 'position' in df.columns:
                 display_columns.append('position')
+                available_columns['position'] = '직책'
             if 'phone' in df.columns:
                 display_columns.append('phone')
+                available_columns['phone'] = '전화번호'
             if 'is_active' in df.columns:
                 display_columns.append('is_active')
+                available_columns['is_active'] = '활성상태'
             if 'created_at' in df.columns:
                 display_columns.append('created_at')
-            if 'updated_at' in df.columns:
-                display_columns.append('updated_at')
+                available_columns['created_at'] = '생성일시'
+            
+            display_df = df[display_columns].rename(columns=available_columns)
             
             # 컬럼 설정
-            column_config = {
-                "id": st.column_config.TextColumn("ID", width="small"),
-                "email": st.column_config.TextColumn("이메일", width="medium"),
-                "name": st.column_config.TextColumn("이름", width="medium"),
-                "role": st.column_config.TextColumn("권한", width="small"),
-                "department": st.column_config.TextColumn("부서", width="medium"),
-                "position": st.column_config.TextColumn("직책", width="medium"),
-                "phone": st.column_config.TextColumn("전화번호", width="medium"),
-                "is_active": st.column_config.CheckboxColumn("활성", width="small"),
-                "created_at": st.column_config.DatetimeColumn("생성일", width="medium"),
-                "updated_at": st.column_config.DatetimeColumn("수정일", width="medium"),
-            }
-            
-            # 표시할 컬럼만 선택
-            df_display = df[display_columns] if display_columns else df
+            column_config = {}
+            for original, korean in available_columns.items():
+                if korean == "ID":
+                    column_config[korean] = st.column_config.TextColumn("ID", width="small")
+                elif korean in ["이메일", "이름", "부서", "직책", "전화번호"]:
+                    column_config[korean] = st.column_config.TextColumn(korean, width="medium")
+                elif korean == "권한":
+                    column_config[korean] = st.column_config.TextColumn("권한", width="small")
+                elif korean == "활성상태":
+                    column_config[korean] = st.column_config.CheckboxColumn("활성상태", width="small")
+                elif korean == "생성일시":
+                    column_config[korean] = st.column_config.DatetimeColumn("생성일시", width="medium")
             
             st.dataframe(
-                df_display,
+                display_df,
                 column_config=column_config,
                 use_container_width=True,
                 hide_index=True
             )
             
-            st.success(f"총 {len(df)}명의 관리자가 등록되어 있습니다.")
-            
+            st.info(f"총 {len(df)}명의 관리자가 등록되어 있습니다.")
         else:
             st.info("등록된 관리자가 없습니다.")
-            if st.button("샘플 관리자 데이터 추가"):
-                upload_sample_admins(supabase)
-    
+            
     except Exception as e:
-        error_message = str(e)
-        st.error(f"관리자 목록을 불러오는 중 오류가 발생했습니다: {error_message}")
-        
-        if "does not exist" in error_message:
-            st.warning("⚠️ admins 테이블이 존재하지 않습니다.")
-            if st.button("테이블 생성 방법 보기"):
-                show_create_admins_table_sql()
+        st.error(f"관리자 목록을 불러오는 중 오류가 발생했습니다: {str(e)}")
 
 def show_add_admin(supabase):
     """새 관리자 추가 폼을 표시합니다."""
     st.subheader("➕ 새 관리자 추가")
-    
-    # 실제 Supabase 연결인지 확인
-    is_real_supabase = not hasattr(supabase, '_init_session_state')
-    
-    if not is_real_supabase:
-        st.warning("오프라인 모드에서는 관리자 추가 기능을 사용할 수 없습니다.")
-        return
     
     with st.form("add_admin_form"):
         col1, col2 = st.columns(2)
@@ -300,79 +258,57 @@ def show_add_admin(supabase):
             position = st.text_input("직책", placeholder="팀장")
             is_active = st.checkbox("활성 상태", value=True)
         
-        # 추가 정보
         notes = st.text_area("비고", placeholder="기타 정보", height=100)
         
         submitted = st.form_submit_button("관리자 추가", type="primary")
         
         if submitted:
-            # 필수 필드 검증
             if not email or not name or not password:
                 st.error("이메일, 이름, 비밀번호는 필수 항목입니다.")
-                return
-            
-            # 이메일 형식 검증
-            if not validate_email(email):
+            elif not validate_email(email):
                 st.error("올바른 이메일 형식을 입력하세요.")
-                return
-            
-            try:
-                admin_data = {
-                    "email": email,
-                    "name": name,
-                    "role": role,
-                    "department": department,
-                    "phone": phone,
-                    "position": position,
-                    "is_active": is_active,
-                    "notes": notes,
-                    "password": password,  # 실제 환경에서는 해시화 필요
-                    "created_at": datetime.now().isoformat(),
-                    "updated_at": datetime.now().isoformat()
-                }
-                
-                response = supabase.table('admins').insert(admin_data).execute()
-                
-                if response.data:
-                    st.success(f"관리자 '{name}'이(가) 성공적으로 추가되었습니다!")
-                    st.rerun()
-                else:
-                    st.error("관리자 추가에 실패했습니다.")
+            else:
+                try:
+                    admin_data = {
+                        "email": email,
+                        "name": name,
+                        "role": role,
+                        "department": department,
+                        "phone": phone,
+                        "position": position,
+                        "is_active": is_active,
+                        "notes": notes,
+                        "password": password,
+                        "created_at": datetime.now().isoformat(),
+                        "updated_at": datetime.now().isoformat()
+                    }
                     
-            except Exception as e:
-                error_message = str(e)
-                st.error(f"관리자 추가 중 오류가 발생했습니다: {error_message}")
-                
-                # 구체적인 오류 해결 가이드 제공
-                if "duplicate key value violates unique constraint" in error_message:
-                    st.warning("⚠️ 이미 존재하는 이메일입니다.")
-                elif "violates check constraint" in error_message and "role" in error_message:
-                    st.warning("⚠️ 권한 값이 올바르지 않습니다. (admin 또는 superadmin만 가능)")
-                elif "does not exist" in error_message:
-                    st.warning("⚠️ admins 테이블이 존재하지 않습니다.")
-                    if st.button("테이블 생성 방법 보기"):
-                        show_create_admins_table_sql()
+                    response = supabase.table('admins').insert(admin_data).execute()
+                    
+                    if response.data:
+                        st.success(f"관리자 '{name}'이(가) 성공적으로 추가되었습니다!")
+                        st.rerun()
+                    else:
+                        st.error("관리자 추가에 실패했습니다.")
+                        
+                except Exception as e:
+                    error_message = str(e)
+                    st.error(f"관리자 추가 중 오류가 발생했습니다: {error_message}")
+                    
+                    if "duplicate key value violates unique constraint" in error_message:
+                        st.warning("이미 존재하는 이메일입니다. 다른 이메일을 사용해주세요.")
 
 def show_edit_admin(supabase):
     """관리자 수정 폼을 표시합니다."""
-    st.subheader("✏️ 관리자 정보 수정")
-    
-    # 실제 Supabase 연결인지 확인
-    is_real_supabase = not hasattr(supabase, '_init_session_state')
-    
-    if not is_real_supabase:
-        st.warning("오프라인 모드에서는 관리자 수정 기능을 사용할 수 없습니다.")
-        return
+    st.subheader("✏️ 관리자 수정")
     
     try:
-        # 관리자 목록 조회
         response = supabase.table('admins').select('*').execute()
         
         if not response.data:
             st.info("수정할 관리자가 없습니다.")
             return
         
-        # 관리자 선택
         admin_options = {f"{admin['name']} ({admin['email']})": admin for admin in response.data}
         selected_admin_key = st.selectbox("수정할 관리자 선택", list(admin_options.keys()))
         
@@ -404,127 +340,106 @@ def show_edit_admin(supabase):
                 submitted = st.form_submit_button("수정 저장", type="primary")
                 
                 if submitted:
-                    # 필수 필드 검증
                     if not email or not name:
                         st.error("이메일과 이름은 필수 항목입니다.")
-                        return
-                    
-                    # 이메일 형식 검증
-                    if not validate_email(email):
+                    elif not validate_email(email):
                         st.error("올바른 이메일 형식을 입력하세요.")
-                        return
-                    
-                    try:
-                        update_data = {
-                            "email": email,
-                            "name": name,
-                            "role": role,
-                            "department": department,
-                            "phone": phone,
-                            "position": position,
-                            "is_active": is_active,
-                            "notes": notes,
-                            "updated_at": datetime.now().isoformat()
-                        }
-                        
-                        if change_password and new_password:
-                            update_data["password"] = new_password
-                        
-                        response = supabase.table('admins').update(update_data).eq('id', selected_admin['id']).execute()
-                        
-                        if response.data:
-                            st.success(f"관리자 '{name}'의 정보가 성공적으로 수정되었습니다!")
-                            st.rerun()
-                        else:
-                            st.error("관리자 정보 수정에 실패했습니다.")
+                    else:
+                        try:
+                            update_data = {
+                                "email": email,
+                                "name": name,
+                                "role": role,
+                                "department": department,
+                                "phone": phone,
+                                "position": position,
+                                "is_active": is_active,
+                                "notes": notes,
+                                "updated_at": datetime.now().isoformat()
+                            }
                             
-                    except Exception as e:
-                        error_message = str(e)
-                        st.error(f"관리자 수정 중 오류가 발생했습니다: {error_message}")
-                        
-                        if "duplicate key value violates unique constraint" in error_message:
-                            st.warning("⚠️ 이미 존재하는 이메일입니다.")
-                        elif "violates check constraint" in error_message:
-                            st.warning("⚠️ 권한 값이 올바르지 않습니다.")
-    
+                            if change_password and new_password:
+                                update_data["password"] = new_password
+                            
+                            response = supabase.table('admins').update(update_data).eq('id', selected_admin['id']).execute()
+                            
+                            if response.data:
+                                st.success(f"관리자 '{name}'의 정보가 성공적으로 수정되었습니다!")
+                                st.rerun()
+                            else:
+                                st.error("관리자 정보 수정에 실패했습니다.")
+                                
+                        except Exception as e:
+                            error_message = str(e)
+                            st.error(f"관리자 수정 중 오류가 발생했습니다: {error_message}")
+                            
+                            if "duplicate key value violates unique constraint" in error_message:
+                                st.warning("이미 존재하는 이메일입니다. 다른 이메일을 사용해주세요.")
+            
     except Exception as e:
-        st.error(f"관리자 목록을 불러오는 중 오류가 발생했습니다: {str(e)}")
+        st.error(f"데이터 로드 중 오류 발생: {str(e)}")
 
 def show_delete_admin(supabase):
     """관리자 삭제 폼을 표시합니다."""
     st.subheader("🗑️ 관리자 삭제")
     
-    # 실제 Supabase 연결인지 확인
-    is_real_supabase = not hasattr(supabase, '_init_session_state')
-    
-    if not is_real_supabase:
-        st.warning("오프라인 모드에서는 관리자 삭제 기능을 사용할 수 없습니다.")
-        return
-    
     st.warning("⚠️ 주의: 관리자를 삭제하면 되돌릴 수 없습니다!")
     
     try:
-        # 관리자 목록 조회
         response = supabase.table('admins').select('*').execute()
         
         if not response.data:
             st.info("삭제할 관리자가 없습니다.")
             return
         
-        # 관리자 선택
         admin_options = {f"{admin['name']} ({admin['email']})": admin for admin in response.data}
         selected_admin_key = st.selectbox("삭제할 관리자 선택", list(admin_options.keys()))
         
         if selected_admin_key:
             selected_admin = admin_options[selected_admin_key]
             
-            # 선택된 관리자 정보 표시
-            st.subheader("삭제할 관리자 정보")
-            col1, col2 = st.columns(2)
+            st.warning("⚠️ 다음 관리자를 삭제하시겠습니까?")
             
+            col1, col2 = st.columns(2)
             with col1:
-                st.write(f"**이름:** {selected_admin.get('name', '')}")
-                st.write(f"**이메일:** {selected_admin.get('email', '')}")
-                st.write(f"**권한:** {selected_admin.get('role', '')}")
+                st.write(f"**이름**: {selected_admin['name']}")
+                st.write(f"**이메일**: {selected_admin['email']}")
+                st.write(f"**권한**: {selected_admin['role']}")
             
             with col2:
-                st.write(f"**부서:** {selected_admin.get('department', '')}")
-                st.write(f"**직책:** {selected_admin.get('position', '')}")
-                st.write(f"**활성 상태:** {'✅' if selected_admin.get('is_active') else '❌'}")
+                st.write(f"**부서**: {selected_admin.get('department', '없음')}")
+                st.write(f"**직책**: {selected_admin.get('position', '없음')}")
+                st.write(f"**활성상태**: {'활성' if selected_admin.get('is_active', True) else '비활성'}")
             
-            # 삭제 확인
-            st.markdown("---")
-            confirm_text = st.text_input(
-                "삭제를 확인하려면 '삭제'를 입력하세요:",
-                placeholder="삭제"
-            )
+            col1, col2 = st.columns([1, 1])
             
-            if st.button("🗑️ 관리자 삭제", type="secondary"):
-                if confirm_text != "삭제":
-                    st.error("'삭제'를 정확히 입력해야 합니다.")
-                    return
-                
-                try:
-                    response = supabase.table('admins').delete().eq('id', selected_admin['id']).execute()
-                    
-                    if response.data:
-                        st.success(f"관리자 '{selected_admin['name']}'이(가) 성공적으로 삭제되었습니다!")
-                        st.rerun()
-                    else:
-                        st.error("관리자 삭제에 실패했습니다.")
+            with col1:
+                if st.button("🗑️ 삭제 확인", type="primary"):
+                    try:
+                        response = supabase.table('admins').delete().eq('id', selected_admin['id']).execute()
                         
-                except Exception as e:
-                    st.error(f"관리자 삭제 중 오류가 발생했습니다: {str(e)}")
-    
+                        if response.data:
+                            st.success(f"관리자 '{selected_admin['name']}'이(가) 성공적으로 삭제되었습니다!")
+                            st.rerun()
+                        else:
+                            st.error("관리자 삭제에 실패했습니다.")
+                            
+                    except Exception as e:
+                        st.error(f"관리자 삭제 중 오류가 발생했습니다: {str(e)}")
+            
+            with col2:
+                if st.button("❌ 취소"):
+                    st.rerun()
+            
     except Exception as e:
-        st.error(f"관리자 목록을 불러오는 중 오류가 발생했습니다: {str(e)}")
+        st.error(f"데이터 로드 중 오류 발생: {str(e)}")
 
 def validate_email(email):
-    """이메일 형식 검증"""
+    """이메일 형식을 검증합니다."""
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return re.match(pattern, email) is not None
 
 def hash_password(password):
-    """비밀번호 해시화 (실제 환경에서는 보안 라이브러리 사용 필요)"""
+    """비밀번호를 해시화합니다. (실제 환경에서는 더 강력한 해시 함수 사용 권장)"""
     import hashlib
     return hashlib.sha256(password.encode()).hexdigest() 

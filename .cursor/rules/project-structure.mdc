@@ -1,0 +1,52 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 프로젝트 구조 및 규칙 안내
+
+## 1. 메인 진입점
+- [app.py](mdc:app.py): Streamlit 기반 CNC 품질 검사 KPI 앱의 메인 실행 파일입니다.
+- [run.py](mdc:run.py): 의존성 자동 설치 및 앱 실행 스크립트입니다.
+- [app_enhanced_auth.py](mdc:app_enhanced_auth.py): 강화된 인증 시스템 적용 버전의 메인 파일입니다.
+
+## 2. 주요 폴더 및 역할
+- [pages/](mdc:pages): 각종 페이지(검사실적, CRUD, 관리자, 사용자, 리포트 등) 구현 폴더입니다.
+    - 검사실적: [inspection_crud.py](mdc:pages/inspection_crud.py), [inspection_input.py](mdc:pages/inspection_input.py)
+    - 검사자 관리: [inspector_crud.py](mdc:pages/inspector_crud.py), [inspector_management.py](mdc:pages/inspector_management.py)
+    - 생산모델 관리: [item_management.py](mdc:pages/item_management.py)
+    - 사용자/관리자/불량유형 관리: [user_crud.py](mdc:pages/user_crud.py), [admin_management.py](mdc:pages/admin_management.py), [defect_type_management.py](mdc:pages/defect_type_management.py)
+    - 리포트: [reports.py](mdc:pages/reports.py)
+    - Supabase 설정: [supabase_config.py](mdc:pages/supabase_config.py)
+    - 대시보드: [dashboard.py](mdc:pages/dashboard.py)
+- [utils/](mdc:utils): Supabase 연동, 인증, 불량유형 등 유틸리티 함수 모음입니다.
+    - [supabase_client.py](mdc:utils/supabase_client.py): Supabase DB 연동 및 오프라인 모드 지원
+    - [auth_system.py](mdc:utils/auth_system.py), [two_factor_auth.py](mdc:utils/two_factor_auth.py): 인증 관련 유틸리티
+    - [defect_utils.py](mdc:utils/defect_utils.py): 불량유형 관련 유틸리티
+- [.streamlit/](mdc:.streamlit): secrets.toml 등 환경설정 및 Streamlit 설정 폴더입니다.
+
+## 3. 데이터베이스 및 Supabase
+- Supabase(PostgreSQL)와 연동하며, 연결정보는 `.streamlit/secrets.toml`에 저장합니다.
+- 오프라인 모드 지원: Supabase 연결 실패 시 더미 데이터 사용
+- 주요 테이블: inspection_data, inspectors, production_models, defect_types 등
+- 샘플 데이터/테이블 생성 SQL: `insert_sample_inspection_data.sql`, `create_production_models_final.sql` 등
+
+## 4. CRUD 및 UI/UX
+- 검사실적, 검사자, 사용자, 관리자, 생산모델 등은 CRUD(조회, 추가, 수정, 삭제, 동기화) 탭 구조로 구현되어 있습니다.
+- UI/UX/LAYOUT은 임의로 변경 금지, 변경 전 이미지와 동일하게 복원 요청 시 반드시 준수해야 합니다.
+
+## 5. 삭제된 페이지 및 코드
+- 불량관리, 설비정보 등 관련 페이지 및 연관 코드는 완전히 삭제되어야 하며, 남아있는 경우 규칙 위반입니다.
+
+## 6. 공식 문서 및 참고
+- [README.md](mdc:README.md), [README_NEW.md](mdc:README_NEW.md): 설치, 실행, 데이터베이스 구조, 주요 기능, 문제해결 등 공식 안내 문서입니다.
+- [CNC_KPI_프로젝트_개요_보고서_20250528_140716.txt](mdc:CNC_KPI_프로젝트_개요_보고서_20250528_140716.txt): 프로젝트 개요 및 기술 스택, 데이터베이스 구조 등 참고 자료입니다.
+
+## 7. 의존성 관리
+- [requirements.txt](mdc:requirements.txt): Python 패키지 의존성 관리 파일입니다.
+
+## 8. 기타
+- Streamlit 캐시 클리어, Supabase 연결상태 표시, 오프라인/온라인 모드 자동 전환 등 안정성 기능이 구현되어 있습니다.
+- 모든 규칙 및 구조 안내는 한글로 작성되어야 하며, UI/UX/LAYOUT 관련 요청은 반드시 준수해야 합니다.
+
+
