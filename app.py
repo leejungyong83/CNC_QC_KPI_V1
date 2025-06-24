@@ -101,21 +101,71 @@ if not st.session_state.authenticated:
         
         if submit_button:
             if email and password:
-                # 테스트용 로그인 (실제 환경에서는 데이터베이스 검증 필요)
-                if email == "admin@company.com" and password == "admin123":
-                    st.session_state.authenticated = True
-                    st.session_state.user_name = "관리자"
-                    st.session_state.user_role = "관리자"
-                    st.success("로그인 성공!")
-                    st.rerun()
-                elif email == "user@company.com" and password == "user123":
-                    st.session_state.authenticated = True
-                    st.session_state.user_name = "사용자"
-                    st.session_state.user_role = "사용자"
-                    st.success("로그인 성공!")
-                    st.rerun()
-                else:
-                    st.error("이메일 또는 비밀번호가 잘못되었습니다.")
+                # 실제 데이터베이스 검증
+                try:
+                    supabase = get_supabase_client()
+                    if supabase:
+                        # users 테이블에서 먼저 확인
+                        response = supabase.table('users').select('*').eq('email', email).execute()
+                        
+                        # users 테이블에 없으면 admins 테이블 확인
+                        if not response.data:
+                            response = supabase.table('admins').select('*').eq('email', email).execute()
+                        
+                        if response.data:
+                            user_data = response.data[0]
+                            
+                            # 비밀번호 검증
+                            password_valid = False
+                            
+                            # SHA256 해시 비교
+                            if user_data.get('password_hash'):
+                                input_hash = hashlib.sha256(password.encode()).hexdigest()
+                                if user_data.get('password_hash') == input_hash:
+                                    password_valid = True
+                            
+                            # 평문 비밀번호 비교 (개발용)
+                            elif user_data.get('password') == password:
+                                password_valid = True
+                            
+                            if password_valid and user_data.get('is_active', True):
+                                st.session_state.authenticated = True
+                                st.session_state.user_name = user_data.get('name', '사용자')
+                                st.session_state.user_role = user_data.get('role', 'user')
+                                st.success("로그인 성공!")
+                                st.rerun()
+                            else:
+                                st.error("이메일 또는 비밀번호가 올바르지 않습니다.")
+                        else:
+                            st.error("이메일 또는 비밀번호가 올바르지 않습니다.")
+                    else:
+                        # Supabase 연결 실패 시 기본 테스트 계정
+                        if email == "admin@company.com" and password == "admin123":
+                            st.session_state.authenticated = True
+                            st.session_state.user_name = "관리자"
+                            st.session_state.user_role = "admin"  # "관리자" -> "admin"으로 변경
+                            st.success("로그인 성공!")
+                            st.rerun()
+                        elif email == "user@company.com" and password == "user123":
+                            st.session_state.authenticated = True
+                            st.session_state.user_name = "사용자"
+                            st.session_state.user_role = "user"  # "사용자" -> "user"로 변경
+                            st.success("로그인 성공!")
+                            st.rerun()
+                        else:
+                            st.error("이메일 또는 비밀번호가 잘못되었습니다.")
+                
+                except Exception as e:
+                    st.error(f"로그인 중 오류 발생: {str(e)}")
+                    # 오류 시 기본 테스트 계정으로 fallback
+                    if email == "admin@company.com" and password == "admin123":
+                        st.session_state.authenticated = True
+                        st.session_state.user_name = "관리자"
+                        st.session_state.user_role = "admin"  # "관리자" -> "admin"으로 변경
+                        st.success("로그인 성공!")
+                        st.rerun()
+                    else:
+                        st.error("이메일 또는 비밀번호가 잘못되었습니다.")
             else:
                 st.error("이메일과 비밀번호를 모두 입력해주세요.")
     
@@ -142,8 +192,8 @@ else:
     # 사이드바 카테고리 및 메뉴
     st.sidebar.markdown("### 메뉴")
     
-    # 관리자 메뉴
-    if st.session_state.user_role == "관리자":
+    # 관리자 메뉴 (admin, superadmin, 관리자 역할 모두 지원)
+    if st.session_state.user_role in ["admin", "superadmin", "관리자"]:
         with st.sidebar.expander("⚙️ 관리자 메뉴", expanded=True):
             admin_cols = st.columns(1)
             if admin_cols[0].button("👥 사용자 관리", key="user_crud", use_container_width=True):

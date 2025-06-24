@@ -189,9 +189,13 @@ class AuthenticationSystem:
         
         try:
             # 데이터베이스에서 사용자 정보 조회
-            if self.supabase and not :
-                # 실제 Supabase 사용
+            if self.supabase:
+                # 실제 Supabase 사용 - users 테이블 먼저 확인
                 response = self.supabase.table('users').select('*').eq('email', email).execute()
+                
+                # users 테이블에 없으면 admins 테이블도 확인
+                if not response.data:
+                    response = self.supabase.table('admins').select('*').eq('email', email).execute()
                 
                 if not response.data:
                     self.record_login_attempt(email, False)
@@ -199,20 +203,32 @@ class AuthenticationSystem:
                 
                 user_data = response.data[0]
                 
-                # 비밀번호 검증 (실제 환경에서는 해시된 비밀번호 사용)
+                # 비밀번호 검증
                 if user_data.get('password_hash'):
                     # 해시된 비밀번호가 있는 경우
                     stored_hash = user_data.get('password_hash')
-                    salt = user_data.get('salt', '')
                     
-                    if not self.verify_password(password, stored_hash, salt):
-                        self.record_login_attempt(email, False)
-                        return False, "이메일 또는 비밀번호가 올바르지 않습니다.", None
-                else:
-                    # 임시: 평문 비밀번호 (개발용)
+                    # SHA256 해시로 직접 비교 (간단한 방식)
+                    import hashlib
+                    input_hash = hashlib.sha256(password.encode()).hexdigest()
+                    
+                    if stored_hash != input_hash:
+                        # PBKDF2 방식도 시도해보기
+                        salt = user_data.get('salt', '')
+                        if salt and not self.verify_password(password, stored_hash, salt):
+                            self.record_login_attempt(email, False)
+                            return False, "이메일 또는 비밀번호가 올바르지 않습니다.", None
+                        elif not salt:
+                            self.record_login_attempt(email, False)
+                            return False, "이메일 또는 비밀번호가 올바르지 않습니다.", None
+                elif user_data.get('password'):
+                    # 평문 비밀번호 (개발용)
                     if user_data.get('password') != password:
                         self.record_login_attempt(email, False)
                         return False, "이메일 또는 비밀번호가 올바르지 않습니다.", None
+                else:
+                    self.record_login_attempt(email, False)
+                    return False, "비밀번호가 설정되지 않은 계정입니다.", None
             
             else:
                 # 더미 데이터 사용 (오프라인 모드)

@@ -269,6 +269,10 @@ def show_add_admin(supabase):
                 st.error("올바른 이메일 형식을 입력하세요.")
             else:
                 try:
+                    # 비밀번호를 SHA256으로 해시화
+                    import hashlib
+                    password_hash = hashlib.sha256(password.encode()).hexdigest()
+                    
                     admin_data = {
                         "email": email,
                         "name": name,
@@ -278,7 +282,7 @@ def show_add_admin(supabase):
                         "position": position,
                         "is_active": is_active,
                         "notes": notes,
-                        "password": password,
+                        "password_hash": password_hash,  # password -> password_hash로 변경
                         "created_at": datetime.now().isoformat(),
                         "updated_at": datetime.now().isoformat()
                     }
@@ -359,7 +363,10 @@ def show_edit_admin(supabase):
                             }
                             
                             if change_password and new_password:
-                                update_data["password"] = new_password
+                                # 새 비밀번호를 SHA256으로 해시화
+                                import hashlib
+                                new_password_hash = hashlib.sha256(new_password.encode()).hexdigest()
+                                update_data["password_hash"] = new_password_hash  # password -> password_hash로 변경
                             
                             response = supabase.table('admins').update(update_data).eq('id', selected_admin['id']).execute()
                             
