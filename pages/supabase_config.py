@@ -55,13 +55,13 @@ def check_connection_status():
     try:
         client = get_supabase_client()
         
-        # 기본 연결 테스트
+        # 기본 연결 테스트 (메시지 숨김 처리)
         try:
             response = client.table('users').select('*').limit(1).execute()
-            st.success("✅ Supabase에 성공적으로 연결되었습니다!")
-            st.success("🎯 users 테이블에도 정상적으로 접근 가능합니다!")
+            # 연결 성공 메시지 숨김 (사용자 요청)
+            pass
         except Exception as e:
-            st.success("✅ Supabase 기본 연결은 성공했습니다!")
+            # 연결 기본 성공 메시지 숨김 (사용자 요청)
             st.warning(f"⚠️ users 테이블 접근 오류: {str(e)}")
             
             st.markdown("""

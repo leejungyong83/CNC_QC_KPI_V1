@@ -38,11 +38,11 @@ def get_supabase_client() -> Client:
         # 실제 Supabase 클라이언트 생성
         supabase = create_client(supabase_url, supabase_key)
         
-        # 연결 테스트
+        # 연결 테스트 (메시지 숨김 처리)
         try:
             # 간단한 연결 테스트를 위해 테이블 목록을 조회
             test_response = supabase.table('users').select('id').limit(1).execute()
-            st.success("✅ **Supabase에 성공적으로 연결되었습니다!**")
+            # 연결 성공 메시지 숨김 (사용자 요청)
             return supabase
         except Exception as e:
             st.error(f"❌ **Supabase 연결 실패**: {str(e)}")

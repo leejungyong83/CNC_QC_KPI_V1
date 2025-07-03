@@ -142,7 +142,7 @@ def show_data_input_form():
     if supabase_inspectors:
         # Supabase 데이터 사용 - 모든 검사자 포함
         inspector_options = ["검사원 선택"] + [f"{insp['name']} ({insp['employee_id']})" for insp in supabase_inspectors]
-        st.info(f"✅ Supabase에서 {len(supabase_inspectors)}명의 검사자 데이터를 가져왔습니다.")
+        # 연결 메시지 숨김 처리 (요청에 따라 제거)
     else:
         try:
             inspectors = get_all_inspectors()
