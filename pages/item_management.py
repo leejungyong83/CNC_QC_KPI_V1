@@ -120,7 +120,15 @@ def show_model_form(supabase):
             model_name = st.text_input("모델명 *", placeholder="예: 기본형 CNC 모델")
         
         with col2:
-            process = st.selectbox("공정 *", ["밀링", "터닝", "드릴링", "기타"])
+            process_options = ["C1", "C2", "C2-1", "직접입력"]
+            process_selection = st.selectbox("공정 *", process_options)
+            
+            # 직접입력 선택 시 텍스트 입력 필드 표시
+            if process_selection == "직접입력":
+                process = st.text_input("공정명 입력", placeholder="공정명을 입력하세요")
+            else:
+                process = process_selection
+                
             notes = st.text_area("비고", placeholder="모델에 대한 추가 정보")
         
         submitted = st.form_submit_button("등록", type="primary")
@@ -128,6 +136,8 @@ def show_model_form(supabase):
         if submitted:
             if not model_no or not model_name:
                 st.error("모델번호와 모델명은 필수 항목입니다.")
+            elif process_selection == "직접입력" and not process:
+                st.error("직접입력을 선택한 경우 공정명을 입력해주세요.")
             else:
                 try:
                     model_data = {
@@ -175,31 +185,53 @@ def show_model_edit(supabase):
                         new_model_name = st.text_input("모델명", value=selected_row['model_name'])
                     
                     with col2:
-                        current_process = selected_row['process'] if selected_row['process'] in ["밀링", "터닝", "드릴링", "기타"] else "기타"
-                        new_process = st.selectbox("공정", ["밀링", "터닝", "드릴링", "기타"], 
-                                                 index=["밀링", "터닝", "드릴링", "기타"].index(current_process))
+                        process_options = ["C1", "C2", "C2-1", "직접입력"]
+                        current_process = selected_row['process']
+                        
+                        # 현재 공정이 기본 옵션에 있는지 확인
+                        if current_process in process_options:
+                            default_index = process_options.index(current_process)
+                            process_selection = st.selectbox("공정", process_options, index=default_index)
+                        else:
+                            # 기존 데이터가 직접입력된 값인 경우
+                            process_selection = st.selectbox("공정", process_options, index=process_options.index("직접입력"))
+                        
+                        # 직접입력 선택 시 또는 기존 값이 직접입력인 경우
+                        if process_selection == "직접입력":
+                            if current_process not in process_options[:-1]:  # "직접입력" 제외한 기본 옵션이 아닌 경우
+                                new_process = st.text_input("공정명 입력", value=current_process, placeholder="공정명을 입력하세요")
+                            else:
+                                new_process = st.text_input("공정명 입력", placeholder="공정명을 입력하세요")
+                        else:
+                            new_process = process_selection
+                            
                         new_notes = st.text_area("비고", value=selected_row['notes'] if selected_row['notes'] else "")
                     
                     if st.form_submit_button("수정", type="primary"):
-                        try:
-                            updated_data = {
-                                "model_no": new_model_no,
-                                "model_name": new_model_name,
-                                "process": new_process,
-                                "notes": new_notes if new_notes else None,
-                                "updated_at": datetime.now().isoformat()
-                            }
-                            
-                            response = supabase.table('production_models').update(updated_data).eq('id', selected_row['id']).execute()
-                            
-                            if response.data:
-                                st.success("✅ 모델이 성공적으로 수정되었습니다!")
-                                st.rerun()
-                            else:
-                                st.error("모델 수정에 실패했습니다.")
+                        if not new_model_no or not new_model_name:
+                            st.error("모델번호와 모델명은 필수 항목입니다.")
+                        elif process_selection == "직접입력" and not new_process:
+                            st.error("직접입력을 선택한 경우 공정명을 입력해주세요.")
+                        else:
+                            try:
+                                updated_data = {
+                                    "model_no": new_model_no,
+                                    "model_name": new_model_name,
+                                    "process": new_process,
+                                    "notes": new_notes if new_notes else None,
+                                    "updated_at": datetime.now().isoformat()
+                                }
                                 
-                        except Exception as e:
-                            st.error(f"모델 수정 중 오류 발생: {str(e)}")
+                                response = supabase.table('production_models').update(updated_data).eq('id', selected_row['id']).execute()
+                                
+                                if response.data:
+                                    st.success("✅ 모델이 성공적으로 수정되었습니다!")
+                                    st.rerun()
+                                else:
+                                    st.error("모델 수정에 실패했습니다.")
+                                    
+                            except Exception as e:
+                                st.error(f"모델 수정 중 오류 발생: {str(e)}")
         else:
             st.info("수정할 모델이 없습니다.")
             
