@@ -40,11 +40,31 @@ st.markdown("""
     /* 사이드바 상단 여백 조정 */
     .stSidebar .block-container {
         padding-top: 1rem !important;
+        padding-bottom: 0.5rem !important;
     }
     
     /* 메인 영역 상단 여백 조정 */
     .stAppViewContainer > .main .block-container {
         padding-top: 1rem !important;
+    }
+    
+    /* 사이드바 버튼 간격 최적화 */
+    .stSidebar .stButton > button {
+        margin-bottom: 0.3rem !important;
+        padding: 0.4rem 0.8rem !important;
+        font-size: 0.85rem !important;
+        white-space: nowrap !important;
+    }
+    
+    /* 사이드바 expander 여백 최적화 */
+    .stSidebar .streamlit-expanderHeader {
+        padding: 0.3rem 0.5rem !important;
+    }
+    
+    /* 사이드바 제목 및 캡션 여백 조정 */
+    .stSidebar h1, .stSidebar h2, .stSidebar h3 {
+        margin-top: 0.5rem !important;
+        margin-bottom: 0.5rem !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -204,12 +224,7 @@ if not st.session_state.authenticated:
             else:
                 st.error("이메일과 비밀번호를 모두 입력해주세요.")
     
-    # 테스트 계정 안내
-    st.info("""
-    **테스트 계정:**
-    - 관리자: admin@company.com / admin123
-    - 사용자: user@company.com / user123
-    """)
+    # 테스트 계정 안내 숨김 처리 (사용자 요청)
     
 else:
     # 로그인 후 화면
@@ -224,48 +239,46 @@ else:
     # 관리자 메뉴 (admin, superadmin, 관리자 역할 모두 지원)
     if st.session_state.user_role in ["admin", "superadmin", "관리자"]:
         with st.sidebar.expander("⚙️ 관리자 메뉴", expanded=True):
-            admin_cols = st.columns(1)
-            if admin_cols[0].button("👥 사용자 관리", key="user_crud", use_container_width=True):
+            if st.button("👥 사용자관리", key="user_crud", use_container_width=True):
                 st.session_state.selected_menu = "사용자 관리"
                 st.rerun()
-            if admin_cols[0].button("👨‍💼 관리자 관리", key="admin_mgmt", use_container_width=True):
+            if st.button("👨‍💼 관리자관리", key="admin_mgmt", use_container_width=True):
                 st.session_state.selected_menu = "관리자 관리"
                 st.rerun()
-            if admin_cols[0].button("👷 검사자 등록 및 관리", key="inspector_mgmt", use_container_width=True):
+            if st.button("👷 검사자관리", key="inspector_mgmt", use_container_width=True):
                 st.session_state.selected_menu = "검사자 등록 및 관리"
                 st.rerun()
-            if admin_cols[0].button("🏭 생산모델 관리", key="model_mgmt", use_container_width=True):
+            if st.button("🏭 생산모델관리", key="model_mgmt", use_container_width=True):
                 st.session_state.selected_menu = "생산모델 관리"
                 st.rerun()
-            if admin_cols[0].button("📋 불량 유형 관리", key="defect_type_mgmt", use_container_width=True):
+            if st.button("📋 불량유형관리", key="defect_type_mgmt", use_container_width=True):
                 st.session_state.selected_menu = "불량 유형 관리"
                 st.rerun()
-            if admin_cols[0].button("🔧 Supabase 설정", key="supabase_config", use_container_width=True):
+            if st.button("🔧 Supabase설정", key="supabase_config", use_container_width=True):
                 st.session_state.selected_menu = "Supabase 설정"
                 st.rerun()
     
     # 사용자 메뉴
     with st.sidebar.expander("📋 사용자 메뉴", expanded=True):
-        user_cols = st.columns(1)
-        if user_cols[0].button("📝 검사 데이터 입력", key="inspection_input", use_container_width=True):
+        if st.button("📝 검사데이터입력", key="inspection_input", use_container_width=True):
             st.session_state.selected_menu = "검사 데이터 입력"
             st.rerun()
     
     # 리포트 메뉴 (개별 메뉴로 노출)
     st.sidebar.markdown("### 📊 리포트")
-    if st.sidebar.button("📈 종합 대시보드", key="dashboard", use_container_width=True):
+    if st.sidebar.button("📈 종합대시보드", key="dashboard", use_container_width=True):
         st.session_state.selected_menu = "종합 대시보드"
         st.rerun()
-    if st.sidebar.button("📅 일별 분석", key="daily_analysis", use_container_width=True):
+    if st.sidebar.button("📅 일별분석", key="daily_analysis", use_container_width=True):
         st.session_state.selected_menu = "일별 분석"
         st.rerun()
-    if st.sidebar.button("📆 주별 분석", key="weekly_analysis", use_container_width=True):
+    if st.sidebar.button("📆 주별분석", key="weekly_analysis", use_container_width=True):
         st.session_state.selected_menu = "주별 분석"
         st.rerun()
-    if st.sidebar.button("📊 월별 분석", key="monthly_analysis", use_container_width=True):
+    if st.sidebar.button("📊 월별분석", key="monthly_analysis", use_container_width=True):
         st.session_state.selected_menu = "월별 분석"
         st.rerun()
-    if st.sidebar.button("🔍 불량 분석", key="defect_analysis", use_container_width=True):
+    if st.sidebar.button("🔍 불량분석", key="defect_analysis", use_container_width=True):
         st.session_state.selected_menu = "불량 분석"
         st.rerun()
     
