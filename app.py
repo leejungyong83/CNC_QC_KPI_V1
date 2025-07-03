@@ -14,17 +14,20 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 캐시 관련 설정 (서버 시작 시 캐시 완전히 비우기)
-st.cache_data.clear()
-st.cache_resource.clear()
-
-# React 오류 방지를 위한 추가 설정
+# 캐시 관련 설정 (안전한 캐시 관리)
 try:
-    if 'cache_cleared' not in st.session_state:
+    # 개발 환경에서만 캐시 클리어
+    if os.environ.get('STREAMLIT_CLOUD') != 'true':
         st.cache_data.clear()
         st.cache_resource.clear()
+except Exception:
+    pass
+
+# 세션별 캐시 관리
+try:
+    if 'cache_cleared' not in st.session_state:
         st.session_state.cache_cleared = True
-except:
+except Exception:
     pass
 
 # 세션 상태 초기화
@@ -50,43 +53,37 @@ from utils.supabase_client import get_supabase_client
 import hashlib
 import bcrypt
 
-# .env 파일에서 환경 변수 로드 (강화된 버전)
+# Streamlit Cloud 환경변수 로드 (secrets.toml 우선)
 try:
-    # 여러 경로에서 .env 파일 로드 시도
-    possible_env_paths = [
-        '.env',
-        'C:/CURSOR/QC_KPI/.env',
-        os.path.join(os.getcwd(), '.env'),
-        os.path.expanduser('~/.streamlit/.env')
-    ]
+    # Streamlit Cloud에서는 st.secrets 사용
+    if hasattr(st, 'secrets'):
+        SUPABASE_URL = st.secrets.get("SUPABASE_URL", "")
+        SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "")
+        
+        if SUPABASE_URL:
+            os.environ["SUPABASE_URL"] = SUPABASE_URL
+        if SUPABASE_KEY:
+            os.environ["SUPABASE_KEY"] = SUPABASE_KEY
     
-    env_loaded = False
-    for env_path in possible_env_paths:
-        if os.path.exists(env_path):
-            load_dotenv(env_path, override=True)
-            env_loaded = True
-            break
+    # 로컬 환경에서는 .env 파일 사용
+    if not os.environ.get("SUPABASE_URL") or not os.environ.get("SUPABASE_KEY"):
+        load_dotenv('.env', override=True)
     
-    # 환경변수 값 확인
+    # 환경변수 최종 확인
     SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
     SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
     
-    # .env 파일이 없거나 비어있으면 기본값 설정
+    # 기본값 설정 (개발용)
     if not SUPABASE_URL or SUPABASE_URL == "your_supabase_url":
         os.environ["SUPABASE_URL"] = "your_supabase_url"
     if not SUPABASE_KEY or SUPABASE_KEY == "your_supabase_key":
         os.environ["SUPABASE_KEY"] = "your_supabase_key"
     
-    # 디버그 정보 (필요시 활성화)
-    if False:  # 디버그 모드 비활성화
-        st.sidebar.write(f"🔧 ENV 로드됨: {env_loaded}")
-        st.sidebar.write(f"🔧 SUPABASE_URL: {bool(SUPABASE_URL and SUPABASE_URL != 'your_supabase_url')}")
-        st.sidebar.write(f"🔧 SUPABASE_KEY: {bool(SUPABASE_KEY and SUPABASE_KEY != 'your_supabase_key')}")
-        st.sidebar.write(f"🔧 실제 URL: {SUPABASE_URL[:50]}..." if SUPABASE_URL else "URL 없음")
-        st.sidebar.write(f"🔧 실제 KEY: {SUPABASE_KEY[:20]}..." if SUPABASE_KEY else "KEY 없음")
-    
 except Exception as e:
     st.error(f"환경 변수 로드 중 오류 발생: {str(e)}")
+    # Fallback to default values for testing
+    os.environ["SUPABASE_URL"] = "your_supabase_url"
+    os.environ["SUPABASE_KEY"] = "your_supabase_key"
     
 # 인증되지 않은 경우 로그인 화면 표시
 if not st.session_state.authenticated:
