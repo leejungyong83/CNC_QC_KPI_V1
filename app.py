@@ -14,6 +14,41 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# 개발자 도구 및 디버그 메뉴 숨김 처리
+st.markdown("""
+<style>
+    /* Streamlit 개발자 도구 및 페이지 목록 숨김 */
+    .stSidebar .stSelectbox,
+    .stSidebar .element-container:first-child,
+    .css-1d391kg,
+    .css-1y4p8pa,
+    .css-17lntkn,
+    [data-testid="stSidebarNav"],
+    [data-testid="stSidebarNavItems"],
+    .stSidebar > div:first-child > div:first-child {
+        display: none !important;
+    }
+    
+    /* 상단 툴바 관련 요소 숨김 */
+    .stDeployButton,
+    .stDecoration,
+    header[data-testid="stHeader"],
+    .stToolbar {
+        display: none !important;
+    }
+    
+    /* 사이드바 상단 여백 조정 */
+    .stSidebar .block-container {
+        padding-top: 1rem !important;
+    }
+    
+    /* 메인 영역 상단 여백 조정 */
+    .stAppViewContainer > .main .block-container {
+        padding-top: 1rem !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # 캐시 관련 설정 (안전한 캐시 관리)
 try:
     # 개발 환경에서만 캐시 클리어
