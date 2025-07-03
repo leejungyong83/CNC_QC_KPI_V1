@@ -258,11 +258,11 @@ else:
                 st.session_state.selected_menu = "Supabase 설정"
                 st.rerun()
     
-    # 사용자 메뉴
-    with st.sidebar.expander("📋 사용자 메뉴", expanded=True):
-        if st.button("📝 검사데이터입력", key="inspection_input", use_container_width=True):
-            st.session_state.selected_menu = "검사 데이터 입력"
-            st.rerun()
+    # 사용자 메뉴 (expander에서 제거하여 직접 노출) - 2024-01-20 수정
+    st.sidebar.markdown("### 📝 데이터입력")
+    if st.sidebar.button("📝 검사데이터입력", key="inspection_input", use_container_width=True):
+        st.session_state.selected_menu = "검사 데이터 입력"
+        st.rerun()
     
     # 리포트 메뉴 (개별 메뉴로 노출)
     st.sidebar.markdown("### 📊 리포트")
