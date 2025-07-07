@@ -7,20 +7,46 @@ import random
 
 def show_dashboard():
     """KPI 대시보드 화면 표시"""
-    # 캐시 정리를 위한 강제 업데이트 - v2.0
+    # 캐시 정리를 위한 강제 업데이트 - v3.0 FINAL
     st.header("KPI 대시보드")
     
-    # KPI 카드 레이아웃
+    # KPI 카드 레이아웃 - 실제 데이터 사용
+    kpi_data = calculate_kpi_data()
+    
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric(label="총 검사 건수", value="175", delta="15")
+        st.metric(
+            label="총 검사 건수 (30일)", 
+            value=f"{kpi_data['total_inspections']}건",
+            delta=f"+{kpi_data['total_inspections']//30}건/일 평균"
+        )
     with col2:
-        st.metric(label="불량률", value="3.5%", delta="-0.5%")
+        defect_rate = kpi_data['defect_rate']
+        delta_color = "normal" if defect_rate <= 0.02 else "inverse"
+        st.metric(
+            label="불량률", 
+            value=f"{defect_rate:.3f}%",
+            delta=f"목표 0.02% {'달성' if defect_rate <= 0.02 else '미달'}",
+            delta_color=delta_color
+        )
     with col3:
-        st.metric(label="평균 검사 시간", value="12분", delta="-2분")
+        total_qty = kpi_data.get('total_inspected_qty', 0)
+        avg_qty_per_inspection = total_qty / kpi_data['total_inspections'] if kpi_data['total_inspections'] > 0 else 0
+        st.metric(
+            label="평균 검사수량/건", 
+            value=f"{avg_qty_per_inspection:.0f}개",
+            delta=f"총 {total_qty}개 검사"
+        )
     with col4:
-        st.metric(label="최초 합격률", value="92%", delta="2%")
+        efficiency = kpi_data['inspection_efficiency']
+        delta_color = "normal" if efficiency >= 95.0 else "inverse"
+        st.metric(
+            label="검사 효율성", 
+            value=f"{efficiency:.1f}%",
+            delta=f"목표 95% {'달성' if efficiency >= 95.0 else '미달'}",
+            delta_color=delta_color
+        )
     
     # BEST/WORST 검사자 섹션 추가
     st.markdown("---")
@@ -132,19 +158,22 @@ def show_inspector_performance():
                 # BEST 검사자
                 best_inspector = performance_data[0]  # 합격률 기준 최고
                 st.success(f"🏅 **BEST 검사자**")
-                st.write(f"👤 **{best_inspector['name']}**")
+                st.write(f"👤 **{best_inspector['name']}** ({best_inspector['employee_id']})")
                 st.write(f"✅ 합격률: **{best_inspector['pass_rate']:.1f}%**")
                 st.write(f"📊 검사 건수: **{best_inspector['total_inspections']}건**")
                 st.write(f"🎯 불량률: **{best_inspector['defect_rate']:.2f}%**")
             
             with col2:
                 # WORST 검사자 (개선 필요)
-                worst_inspector = performance_data[-1]  # 합격률 기준 최저
-                st.warning(f"📈 **개선 필요 검사자**")
-                st.write(f"👤 **{worst_inspector['name']}**")
-                st.write(f"❌ 합격률: **{worst_inspector['pass_rate']:.1f}%**")
-                st.write(f"📊 검사 건수: **{worst_inspector['total_inspections']}건**")
-                st.write(f"🎯 불량률: **{worst_inspector['defect_rate']:.2f}%**")
+                if len(performance_data) > 1:
+                    worst_inspector = performance_data[-1]  # 합격률 기준 최저
+                    st.warning(f"📈 **개선 필요 검사자**")
+                    st.write(f"👤 **{worst_inspector['name']}** ({worst_inspector['employee_id']})")
+                    st.write(f"❌ 합격률: **{worst_inspector['pass_rate']:.1f}%**")
+                    st.write(f"📊 검사 건수: **{worst_inspector['total_inspections']}건**")
+                    st.write(f"🎯 불량률: **{worst_inspector['defect_rate']:.2f}%**")
+                else:
+                    st.info("비교할 다른 검사자 데이터가 없습니다.")
         else:
             st.info("검사자 성과 데이터가 없습니다. 검사 실적을 입력해주세요.")
             
@@ -197,119 +226,138 @@ def show_kpi_alerts():
         st.error(f"KPI 데이터 계산 중 오류: {str(e)}")
 
 def get_inspector_performance_data():
-    """검사자별 성과 데이터 조회"""
+    """검사자별 성과 데이터 조회 - 실제 데이터베이스에서"""
     try:
         supabase = get_supabase_client()
         
-        # 검사 데이터와 검사자 정보를 JOIN하여 조회
-        query = """
-        SELECT 
-            i.name,
-            i.employee_id,
-            COUNT(id.id) as total_inspections,
-            COUNT(CASE WHEN id.result = '합격' THEN 1 END) as pass_count,
-            SUM(COALESCE(id.total_inspected, id.quantity, 0)) as total_inspected_qty,
-            SUM(COALESCE(id.defect_quantity, 0)) as total_defect_qty
-        FROM inspectors i
-        LEFT JOIN inspection_data id ON i.id = id.inspector_id
-        WHERE id.id IS NOT NULL
-        GROUP BY i.id, i.name, i.employee_id
-        HAVING COUNT(id.id) > 0
-        ORDER BY (COUNT(CASE WHEN id.result = '합격' THEN 1 END) * 100.0 / COUNT(id.id)) DESC
-        """
+        # 1. 검사 데이터 조회
+        inspection_result = supabase.table('inspection_data').select('*').execute()
+        inspections = inspection_result.data if inspection_result.data else []
         
-        result = supabase.rpc('exec_sql', {'sql': query}).execute()
+        # 2. 검사자 정보 조회
+        inspectors_result = supabase.table('inspectors').select('*').execute()
+        inspectors = {insp['id']: insp for insp in inspectors_result.data} if inspectors_result.data else {}
         
-        if result.data:
-            performance_data = []
-            for row in result.data:
-                total_inspections = row['total_inspections']
-                pass_count = row['pass_count']
-                total_inspected_qty = row['total_inspected_qty'] or 0
-                total_defect_qty = row['total_defect_qty'] or 0
+        if not inspections or not inspectors:
+            return None
+        
+        # 3. 검사자별 성과 계산
+        inspector_stats = {}
+        
+        for inspection in inspections:
+            inspector_id = inspection.get('inspector_id')
+            if not inspector_id or inspector_id not in inspectors:
+                continue
                 
-                pass_rate = (pass_count / total_inspections * 100) if total_inspections > 0 else 0
-                defect_rate = (total_defect_qty / total_inspected_qty * 100) if total_inspected_qty > 0 else 0
+            if inspector_id not in inspector_stats:
+                inspector_stats[inspector_id] = {
+                    'name': inspectors[inspector_id]['name'],
+                    'employee_id': inspectors[inspector_id].get('employee_id', 'N/A'),
+                    'total_inspections': 0,
+                    'pass_count': 0,
+                    'total_inspected_qty': 0,
+                    'total_defect_qty': 0
+                }
+            
+            stats = inspector_stats[inspector_id]
+            stats['total_inspections'] += 1
+            
+            if inspection.get('result') == '합격':
+                stats['pass_count'] += 1
+            
+            # 수량 정보
+            inspected_qty = inspection.get('total_inspected') or inspection.get('quantity') or 0
+            defect_qty = inspection.get('defect_quantity') or 0
+            
+            stats['total_inspected_qty'] += inspected_qty
+            stats['total_defect_qty'] += defect_qty
+        
+        # 4. 성과 지표 계산 및 정렬
+        performance_data = []
+        for inspector_id, stats in inspector_stats.items():
+            if stats['total_inspections'] > 0:
+                pass_rate = (stats['pass_count'] / stats['total_inspections']) * 100
+                defect_rate = (stats['total_defect_qty'] / stats['total_inspected_qty'] * 100) if stats['total_inspected_qty'] > 0 else 0
                 
                 performance_data.append({
-                    'name': row['name'],
-                    'employee_id': row['employee_id'],
-                    'total_inspections': total_inspections,
+                    'name': stats['name'],
+                    'employee_id': stats['employee_id'],
+                    'total_inspections': stats['total_inspections'],
                     'pass_rate': pass_rate,
                     'defect_rate': defect_rate
                 })
-            
-            return performance_data
-        else:
-            # 샘플 데이터 반환 (데이터가 없을 경우)
-            return [
-                {'name': '김검사', 'employee_id': 'INSP001', 'total_inspections': 25, 'pass_rate': 96.8, 'defect_rate': 1.2},
-                {'name': '이검사', 'employee_id': 'INSP002', 'total_inspections': 22, 'pass_rate': 94.5, 'defect_rate': 2.1},
-                {'name': '박검사', 'employee_id': 'INSP003', 'total_inspections': 18, 'pass_rate': 88.9, 'defect_rate': 3.8}
-            ]
-            
+        
+        # 합격률 기준으로 내림차순 정렬
+        performance_data.sort(key=lambda x: x['pass_rate'], reverse=True)
+        
+        return performance_data if performance_data else None
+        
     except Exception as e:
-        print(f"검사자 성과 데이터 조회 오류: {str(e)}")
-        # 오류 시 샘플 데이터 반환
-        return [
-            {'name': '김검사', 'employee_id': 'INSP001', 'total_inspections': 25, 'pass_rate': 96.8, 'defect_rate': 1.2},
-            {'name': '이검사', 'employee_id': 'INSP002', 'total_inspections': 22, 'pass_rate': 94.5, 'defect_rate': 2.1},
-            {'name': '박검사', 'employee_id': 'INSP003', 'total_inspections': 18, 'pass_rate': 88.9, 'defect_rate': 3.8}
-        ]
+        st.error(f"검사자 성과 데이터 조회 실패: {str(e)}")
+        return None
 
 def calculate_kpi_data():
-    """KPI 데이터 계산"""
+    """KPI 데이터 계산 - 실제 데이터베이스에서"""
     try:
         supabase = get_supabase_client()
         
-        # 전체 검사 데이터 통계 조회
-        query = """
-        SELECT 
-            COUNT(*) as total_inspections,
-            COUNT(CASE WHEN result = '합격' THEN 1 END) as pass_count,
-            SUM(COALESCE(total_inspected, quantity, 0)) as total_inspected_qty,
-            SUM(COALESCE(defect_quantity, 0)) as total_defect_qty
-        FROM inspection_data
-        WHERE inspection_date >= CURRENT_DATE - INTERVAL '30 days'
-        """
+        # 검사 데이터 조회 (최근 30일)
+        from datetime import datetime, timedelta
+        thirty_days_ago = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
         
-        result = supabase.rpc('exec_sql', {'sql': query}).execute()
+        inspection_result = supabase.table('inspection_data') \
+            .select('*') \
+            .gte('inspection_date', thirty_days_ago) \
+            .execute()
         
-        if result.data and len(result.data) > 0:
-            data = result.data[0]
-            
-            total_inspections = data['total_inspections'] or 0
-            pass_count = data['pass_count'] or 0
-            total_inspected_qty = data['total_inspected_qty'] or 0
-            total_defect_qty = data['total_defect_qty'] or 0
-            
-            # 불량율 계산 (불량 수량 / 총 검사 수량 * 100)
-            defect_rate = (total_defect_qty / total_inspected_qty * 100) if total_inspected_qty > 0 else 0
-            
-            # 검사효율성 계산 (합격률 기준)
-            inspection_efficiency = (pass_count / total_inspections * 100) if total_inspections > 0 else 0
-            
+        inspections = inspection_result.data if inspection_result.data else []
+        
+        if not inspections:
             return {
-                'defect_rate': defect_rate,
-                'inspection_efficiency': inspection_efficiency,
-                'total_inspections': total_inspections,
-                'pass_count': pass_count
+                'defect_rate': 0.0,
+                'inspection_efficiency': 0.0,
+                'total_inspections': 0,
+                'pass_count': 0
             }
-        else:
-            # 샘플 데이터 반환
-            return {
-                'defect_rate': 0.015,  # 0.015% (목표 0.02%보다 낮음)
-                'inspection_efficiency': 97.2,  # 97.2% (목표 95%보다 높음)
-                'total_inspections': 150,
-                'pass_count': 146
-            }
+        
+        # KPI 계산
+        total_inspections = len(inspections)
+        pass_count = 0
+        total_inspected_qty = 0
+        total_defect_qty = 0
+        
+        for inspection in inspections:
+            # 합격 건수
+            if inspection.get('result') == '합격':
+                pass_count += 1
             
-    except Exception as e:
-        print(f"KPI 데이터 계산 오류: {str(e)}")
-        # 오류 시 샘플 데이터 반환
+            # 수량 정보
+            inspected_qty = inspection.get('total_inspected') or inspection.get('quantity') or 0
+            defect_qty = inspection.get('defect_quantity') or 0
+            
+            total_inspected_qty += inspected_qty
+            total_defect_qty += defect_qty
+        
+        # 불량률 계산 (불량 수량 / 총 검사 수량 * 100)
+        defect_rate = (total_defect_qty / total_inspected_qty * 100) if total_inspected_qty > 0 else 0.0
+        
+        # 검사효율성 계산 (합격률)
+        inspection_efficiency = (pass_count / total_inspections * 100) if total_inspections > 0 else 0.0
+        
         return {
-            'defect_rate': 0.025,  # 0.025% (목표 0.02%보다 높음)
-            'inspection_efficiency': 92.8,  # 92.8% (목표 95%보다 낮음)
-            'total_inspections': 150,
-            'pass_count': 139
+            'defect_rate': defect_rate,
+            'inspection_efficiency': inspection_efficiency,
+            'total_inspections': total_inspections,
+            'pass_count': pass_count,
+            'total_inspected_qty': total_inspected_qty,
+            'total_defect_qty': total_defect_qty
+        }
+        
+    except Exception as e:
+        st.error(f"KPI 데이터 계산 실패: {str(e)}")
+        return {
+            'defect_rate': 0.0,
+            'inspection_efficiency': 0.0,
+            'total_inspections': 0,
+            'pass_count': 0
         } 
