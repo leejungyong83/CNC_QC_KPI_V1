@@ -7,6 +7,7 @@ import random
 
 def show_dashboard():
     """KPI 대시보드 화면 표시"""
+    # 캐시 정리를 위한 강제 업데이트 - v2.0
     st.header("KPI 대시보드")
     
     # KPI 카드 레이아웃
