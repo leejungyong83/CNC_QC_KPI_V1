@@ -147,35 +147,70 @@ def show_inspector_performance():
     """BEST/WORST 검사자 성과 표시"""
     st.subheader("🏆 검사자 성과")
     
-    # 단순한 테스트부터 - 일단 화면에 나타나는지 확인
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.success("🏅 **BEST 검사자**")
-        st.write("👤 **김우수검사** (INSP001)")
-        st.write("✅ 합격률: **98.5%**")
-        st.write("📊 검사 건수: **25건**")
-        st.write("🎯 불량률: **0.8%**")
-    
-    with col2:
-        st.warning("📈 **개선 필요 검사자**")
-        st.write("👤 **이개선검사** (INSP003)")
-        st.write("❌ 합격률: **85.2%**")
-        st.write("📊 검사 건수: **18건**")
-        st.write("🎯 불량률: **4.2%**")
-    
-    # 실제 데이터 조회 시도 (에러 발생해도 위의 고정 데이터는 표시됨)
-    with st.expander("🔍 실제 데이터 조회 상태"):
-        try:
-            performance_data = get_inspector_performance_data()
-            if performance_data:
-                st.success(f"✅ 실제 데이터 {len(performance_data)}명 조회 성공!")
-                for data in performance_data:
-                    st.write(f"- {data['name']}: 합격률 {data['pass_rate']:.1f}%")
-            else:
-                st.warning("⚠️ 실제 데이터가 없습니다.")
-        except Exception as e:
-            st.error(f"❌ 실제 데이터 조회 실패: {str(e)}")
+    try:
+        # 실제 데이터 조회
+        performance_data = get_inspector_performance_data()
+        
+        if performance_data and len(performance_data) > 0:
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # BEST 검사자 (첫 번째 = 합격률 최고)
+                best_inspector = performance_data[0]
+                st.success("🏅 **BEST 검사자**")
+                st.write(f"👤 **{best_inspector['name']}** ({best_inspector['employee_id']})")
+                st.write(f"✅ 합격률: **{best_inspector['pass_rate']:.1f}%**")
+                st.write(f"📊 검사 건수: **{best_inspector['total_inspections']}건**")
+                st.write(f"🎯 불량률: **{best_inspector['defect_rate']:.2f}%**")
+            
+            with col2:
+                # WORST 검사자 (마지막 = 합격률 최저, 단 2명 이상인 경우만)
+                if len(performance_data) > 1:
+                    worst_inspector = performance_data[-1]
+                    st.warning("📈 **개선 필요 검사자**")
+                    st.write(f"👤 **{worst_inspector['name']}** ({worst_inspector['employee_id']})")
+                    st.write(f"❌ 합격률: **{worst_inspector['pass_rate']:.1f}%**")
+                    st.write(f"📊 검사 건수: **{worst_inspector['total_inspections']}건**")
+                    st.write(f"🎯 불량률: **{worst_inspector['defect_rate']:.2f}%**")
+                else:
+                    st.info("📊 **단일 검사자**")
+                    st.write("비교할 다른 검사자가 없습니다.")
+            
+            # 전체 검사자 성과 요약 (접을 수 있는 형태)
+            if len(performance_data) > 2:
+                with st.expander(f"📊 전체 검사자 성과 순위 ({len(performance_data)}명)"):
+                    for i, data in enumerate(performance_data, 1):
+                        rank_emoji = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"{i}위"
+                        st.write(f"{rank_emoji} {data['name']} ({data['employee_id']}) - 합격률: {data['pass_rate']:.1f}%, 검사건수: {data['total_inspections']}건")
+        else:
+            # 실제 데이터가 없을 때 기본 안내
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.info("📊 **BEST 검사자**")
+                st.write("검사 실적 데이터가 없습니다.")
+                
+            with col2:
+                st.info("📊 **개선 필요 검사자**")
+                st.write("검사 실적 데이터가 없습니다.")
+            
+            st.warning("⚠️ 검사자 성과를 확인하려면 검사 실적을 먼저 입력해주세요.")
+            st.info("💡 '📝 검사데이터입력' 메뉴에서 검사 실적을 추가할 수 있습니다.")
+            
+    except Exception as e:
+        st.error(f"❌ 검사자 성과 데이터 조회 중 오류: {str(e)}")
+        
+        # 에러 발생 시에도 기본 안내 제공
+        with st.expander("🔧 문제 해결 방법"):
+            st.write("**가능한 원인:**")
+            st.write("- Supabase 데이터베이스 연결 문제")
+            st.write("- inspectors 또는 inspection_data 테이블이 없음")
+            st.write("- 검사 실적 데이터가 없음")
+            st.write("")
+            st.write("**해결 방법:**")
+            st.write("1. 'Supabase 설정' 메뉴에서 데이터베이스 연결 확인")
+            st.write("2. '검사자 등록 및 관리' 메뉴에서 검사자 등록")
+            st.write("3. '📝 검사데이터입력' 메뉴에서 검사 실적 입력")
 
 def show_kpi_alerts():
     """KPI 알림 표시"""
