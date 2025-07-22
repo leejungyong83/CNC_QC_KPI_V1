@@ -6,13 +6,23 @@ from datetime import datetime, timedelta
 import io
 import re
 
-# 페이지 설정
-st.set_page_config(
-    page_title="QC KPI 시스템",
-    page_icon="🏭",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# 모바일 감지 및 페이지 설정
+is_mobile_mode = st.session_state.get('is_mobile', False)
+
+if is_mobile_mode:
+    st.set_page_config(
+        page_title="CNC QC Mobile",
+        page_icon="📱", 
+        layout="centered",
+        initial_sidebar_state="collapsed"
+    )
+else:
+    st.set_page_config(
+        page_title="QC KPI 시스템",
+        page_icon="🏭",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
 
 # 개발자 도구 및 디버그 메뉴 숨김 처리
 st.markdown("""
@@ -302,6 +312,13 @@ else:
         st.session_state.selected_menu = "파일 관리"
         st.rerun()
     
+    # 모바일 모드 전환 (새로 추가)
+    st.sidebar.markdown("### 📱 모바일")
+    if st.sidebar.button("📱 모바일 모드", key="mobile_mode", use_container_width=True):
+        st.session_state.is_mobile = True
+        st.session_state.selected_menu = "모바일 모드"
+        st.rerun()
+    
 
     
     # 로그아웃 버튼
@@ -353,6 +370,10 @@ else:
     elif menu == "파일 관리":
         from utils.file_manager import show_file_management
         show_file_management()
+        
+    elif menu == "모바일 모드":
+        from pages.mobile_page import show_mobile_page
+        show_mobile_page()
         
     elif menu == "불량 유형 관리":
         show_defect_type_management()
