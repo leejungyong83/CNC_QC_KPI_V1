@@ -6,6 +6,20 @@ from datetime import datetime, timedelta
 import io
 import re
 
+# UI 컴포넌트 import
+try:
+    from utils.ui_components import apply_global_styles, std_components
+except ImportError:
+    print("⚠️ UI 컴포넌트를 불러올 수 없습니다.")
+    def apply_global_styles():
+        pass
+    class std_components:
+        @staticmethod
+        def page_header(title, subtitle=""):
+            st.title(title)
+            if subtitle:
+                st.markdown(subtitle)
+
 # 모바일 감지 및 페이지 설정
 is_mobile_mode = st.session_state.get('is_mobile', False)
 
@@ -132,7 +146,6 @@ from pages.reports import show_reports, show_dashboard, show_daily_report, show_
 from utils.supabase_client import get_supabase_client
 import hashlib
 import bcrypt
-from utils.ui_components import apply_global_styles, std_components
 
 # Streamlit Cloud 환경변수 로드 (secrets.toml 우선)
 try:
