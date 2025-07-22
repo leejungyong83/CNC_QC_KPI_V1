@@ -96,7 +96,19 @@ except Exception:
     pass
 
 # 전역 스타일 적용
-apply_global_styles()
+try:
+    apply_global_styles()
+except Exception as e:
+    st.error(f"스타일 로딩 실패: {str(e)}")
+    # 기본 스타일 적용
+    st.markdown("""
+    <style>
+    .main .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 # 세션 상태 초기화
 if "authenticated" not in st.session_state:

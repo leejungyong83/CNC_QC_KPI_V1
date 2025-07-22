@@ -11,11 +11,37 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 from datetime import datetime, date, timedelta
 from typing import Dict, List, Tuple, Optional
-from scipy import stats
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import PolynomialFeatures
 import warnings
 warnings.filterwarnings('ignore')
+
+# 선택적 import - scipy가 없어도 기본 기능은 작동하도록 함
+try:
+    from scipy import stats
+    from sklearn.linear_model import LinearRegression
+    from sklearn.preprocessing import PolynomialFeatures
+    ADVANCED_FEATURES_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ 고급 분석 기능을 위한 패키지가 없습니다: {e}")
+    print("기본 분석 기능만 사용됩니다.")
+    ADVANCED_FEATURES_AVAILABLE = False
+    # 더미 클래스들 생성
+    class LinearRegression:
+        def fit(self, X, y): pass
+        def predict(self, X): return [0] * len(X)
+        def score(self, X, y): return 0.0
+    
+    class PolynomialFeatures:
+        def __init__(self, degree=2): pass
+        def fit_transform(self, X): return X
+        def transform(self, X): return X
+    
+    class stats:
+        @staticmethod
+        def norm(): 
+            class _norm:
+                @staticmethod
+                def ppf(x): return 1.96
+            return _norm()
 
 from utils.supabase_client import get_supabase_client
 from utils.performance_optimizer import cached
@@ -232,6 +258,9 @@ class PredictiveAnalyzer:
     
     def predict_defect_rate(self, df: pd.DataFrame, days_ahead: int = 7) -> Dict:
         """불량률 예측"""
+        if not ADVANCED_FEATURES_AVAILABLE:
+            return {'error': 'scipy와 scikit-learn 패키지가 필요합니다. pip install scipy scikit-learn을 실행하세요.'}
+        
         if len(df) < 7:
             return {'error': '예측을 위해서는 최소 7일 이상의 데이터가 필요합니다.'}
         

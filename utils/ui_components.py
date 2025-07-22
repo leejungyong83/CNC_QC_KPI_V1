@@ -5,6 +5,8 @@ UI/UX 일관성을 위한 공통 컴포넌트 모듈
 
 import streamlit as st
 import plotly.graph_objects as go
+import pandas as pd
+import time
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 
