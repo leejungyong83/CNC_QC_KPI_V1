@@ -296,6 +296,12 @@ else:
         st.session_state.selected_menu = "알림 센터"
         st.rerun()
     
+    # 파일 관리 (새로 추가)
+    st.sidebar.markdown("### 📁 파일")
+    if st.sidebar.button("📥 파일관리", key="file_management", use_container_width=True):
+        st.session_state.selected_menu = "파일 관리"
+        st.rerun()
+    
 
     
     # 로그아웃 버튼
@@ -343,6 +349,10 @@ else:
     elif menu == "알림 센터":
         from pages.notifications import show_notifications
         show_notifications()
+        
+    elif menu == "파일 관리":
+        from utils.file_manager import show_file_management
+        show_file_management()
         
     elif menu == "불량 유형 관리":
         show_defect_type_management()
