@@ -1,9 +1,8 @@
-﻿import streamlit as st
+import streamlit as st
 import pandas as pd
 import plotly.express as px
 from utils.defect_utils import get_defect_type_names
 from utils.supabase_client import get_supabase_client
-from utils.vietnam_timezone import get_vietnam_now, get_vietnam_display_time
 import random
 
 def show_dashboard():
@@ -416,7 +415,7 @@ def calculate_kpi_data_fallback():
         
         # 검사 데이터 조회 (최근 30일)
         from datetime import datetime, timedelta
-        thirty_days_ago = (get_vietnam_now() - timedelta(days=30)).strftime('%Y-%m-%d')
+        thirty_days_ago = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
         
         # 더 효율적인 쿼리: 필요한 컬럼만 조회
         inspection_result = supabase.table('inspection_data') \

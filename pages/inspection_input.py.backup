@@ -1,4 +1,4 @@
-﻿import streamlit as st
+import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta, date
 import io
@@ -8,7 +8,6 @@ from pages.inspector_management import get_all_inspectors
 from pages.item_management import get_all_models
 from utils.supabase_client import get_supabase_client
 from utils.defect_utils import get_defect_type_names
-from utils.vietnam_timezone import get_database_time, get_vietnam_display_time, get_vietnam_now
 import random
 
 def show_inspection_input():
@@ -422,7 +421,7 @@ def show_inspection_data_view():
 
 def generate_sample_inspection_data():
     """샘플 검사 데이터 생성"""
-    today = get_vietnam_now().date()
+    today = datetime.now().date()
     
     # 검사자 목록 (임시)
     inspectors = ["김검사", "이검사", "박검사"]
@@ -455,7 +454,7 @@ def generate_sample_inspection_data():
             "계획 수량": planned_qty,
             "총 검사 수량": total_inspected,
             "불량 수량": defect_qty,
-            "저장일시": get_vietnam_display_time()
+            "저장일시": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         })
     
     return data

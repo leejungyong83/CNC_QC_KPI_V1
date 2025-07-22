@@ -1,4 +1,4 @@
-﻿"""
+"""
 알림 시스템 모듈
 검사 지연, 불량 발생, KPI 목표 미달성 등에 대한 알림 기능 제공
 """
@@ -6,7 +6,6 @@
 import streamlit as st
 from datetime import datetime, timedelta, date
 from utils.supabase_client import get_supabase_client
-from utils.vietnam_timezone import get_vietnam_now
 import pandas as pd
 
 
@@ -51,8 +50,8 @@ class NotificationSystem:
             
         try:
             # 최근 7일간 검사 실적이 없는 경우 지연으로 판단
-        seven_days_ago = (get_vietnam_now() - timedelta(days=7)).strftime('%Y-%m-%d')
-        today = get_vietnam_now().strftime('%Y-%m-%d')
+            seven_days_ago = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+            today = datetime.now().strftime('%Y-%m-%d')
             
             # 최근 검사 실적 조회
             recent_inspections = self.supabase.table('inspection_data') \
@@ -70,7 +69,7 @@ class NotificationSystem:
                     'message': f'최근 7일간 검사 실적이 없습니다.',
                     'action': '검사 데이터 입력 필요',
                     'icon': '⏰',
-            'timestamp': get_vietnam_now()
+                    'timestamp': datetime.now()
                 })
             elif recent_count < 5:  # 주당 최소 5건 검사 권장
                 notifications.append({
@@ -80,7 +79,7 @@ class NotificationSystem:
                     'message': f'최근 7일간 검사 실적이 {recent_count}건으로 적습니다.',
                     'action': '검사 빈도 증가 권장',
                     'icon': '📊',
-            'timestamp': get_vietnam_now()
+                    'timestamp': datetime.now()
                 })
                 
         except Exception as e:
@@ -98,7 +97,7 @@ class NotificationSystem:
             
         try:
             # 최근 24시간 내 불량 발생 확인
-        yesterday = (get_vietnam_now() - timedelta(days=1)).strftime('%Y-%m-%d')
+            yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
             
             defect_inspections = self.supabase.table('inspection_data') \
                 .select('inspection_date, result, defect_quantity, model_id, inspector_id') \
@@ -120,7 +119,7 @@ class NotificationSystem:
                     'message': f'최근 24시간 내 {len(defects)}건의 불량이 발생했습니다. (총 {total_defects}개)',
                     'action': '불량 원인 분석 및 개선 조치 필요',
                     'icon': '🚨',
-            'timestamp': get_vietnam_now()
+                    'timestamp': datetime.now()
                 })
                 
         except Exception as e:
@@ -154,7 +153,7 @@ class NotificationSystem:
                         'message': f'현재 불량률 {defect_rate:.3f}%가 목표 {target_defect_rate}%를 초과했습니다.',
                         'action': '품질 개선 조치 필요',
                         'icon': '⚠️',
-            'timestamp': get_vietnam_now()
+                        'timestamp': datetime.now()
                     })
                 
                 # 2. 검사 효율성 목표 미달성 (목표: 95%)
@@ -170,7 +169,7 @@ class NotificationSystem:
                         'message': f'현재 검사 효율성 {efficiency:.1f}%가 목표 {target_efficiency}%에 미달했습니다.',
                         'action': '검사 프로세스 개선 필요',
                         'icon': '🎯',
-            'timestamp': get_vietnam_now()
+                        'timestamp': datetime.now()
                     })
                 
                 # 3. 검사 건수 부족 (최근 30일 기준)
@@ -185,7 +184,7 @@ class NotificationSystem:
                         'message': f'최근 30일 검사 건수 {total_inspections}건이 권장 기준 {min_inspections}건에 미달했습니다.',
                         'action': '검사 계획 재검토 필요',
                         'icon': '📋',
-            'timestamp': get_vietnam_now()
+                        'timestamp': datetime.now()
                     })
                     
         except Exception as e:

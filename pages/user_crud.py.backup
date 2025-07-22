@@ -1,8 +1,7 @@
-﻿import streamlit as st
+import streamlit as st
 import pandas as pd
 from datetime import datetime
 from utils.supabase_client import get_supabase_client
-from utils.vietnam_timezone import get_database_time
 
 def show_user_crud():
     """사용자 CRUD 관리 페이지를 표시합니다."""
@@ -324,8 +323,8 @@ def show_add_user(supabase):
                         "department": department if 'department' in locals() else "",
                         "is_active": is_active,
                         "password_hash": hash_password(password),  # password -> password_hash
-                "created_at": get_database_time(),
-                "updated_at": get_database_time()
+                        "created_at": datetime.now().isoformat(),
+                        "updated_at": datetime.now().isoformat()
                     }
                     
                     # 추가 정보가 있으면 포함
@@ -474,7 +473,7 @@ def show_edit_user(supabase):
                                 "name": name,
                                 "role": role,
                                 "is_active": is_active,
-                "updated_at": get_database_time()
+                                "updated_at": datetime.now().isoformat()
                             }
                             
                             # 부서 정보 추가
@@ -491,7 +490,7 @@ def show_edit_user(supabase):
                                 "phone": phone if 'phone' in locals() else "",
                                 "position": position if 'position' in locals() else "",
                                 "notes": notes if 'notes' in locals() else "",
-                "updated_at": get_database_time()
+                                "updated_at": datetime.now().isoformat()
                             }
                         
                         # 비밀번호 변경이 요청된 경우
