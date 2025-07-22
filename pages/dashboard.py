@@ -318,7 +318,17 @@ def show_kpi_alerts():
         st.error(f"KPI 데이터 계산 중 오류: {str(e)}")
 
 def get_inspector_performance_data():
-    """검사자별 성과 데이터 조회 - 실제 데이터베이스에서"""
+    """검사자별 성과 데이터 조회 - 성능 최적화된 버전"""
+    # 성능 최적화된 버전 사용
+    try:
+        from utils.performance_optimizer import query_optimizer
+        return query_optimizer.get_optimized_inspector_performance()
+    except ImportError:
+        # 폴백: 기존 방식
+        return get_inspector_performance_data_fallback()
+
+def get_inspector_performance_data_fallback():
+    """검사자별 성과 데이터 조회 - 실제 데이터베이스에서 (기존 버전)"""
     try:
         supabase = get_supabase_client()
         
@@ -389,7 +399,17 @@ def get_inspector_performance_data():
         return None
 
 def calculate_kpi_data():
-    """KPI 데이터 계산 - 실제 데이터베이스에서 (개선된 버전)"""
+    """KPI 데이터 계산 - 성능 최적화된 버전"""
+    # 성능 최적화된 버전 사용
+    try:
+        from utils.performance_optimizer import query_optimizer
+        return query_optimizer.get_optimized_kpi_data()
+    except ImportError:
+        # 폴백: 기존 방식
+        return calculate_kpi_data_fallback()
+
+def calculate_kpi_data_fallback():
+    """KPI 데이터 계산 - 실제 데이터베이스에서 (기존 버전)"""
     try:
         supabase = get_supabase_client()
         

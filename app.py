@@ -95,6 +95,9 @@ try:
 except Exception:
     pass
 
+# 전역 스타일 적용
+apply_global_styles()
+
 # 세션 상태 초기화
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -117,6 +120,7 @@ from pages.reports import show_reports, show_dashboard, show_daily_report, show_
 from utils.supabase_client import get_supabase_client
 import hashlib
 import bcrypt
+from utils.ui_components import apply_global_styles, std_components
 
 # Streamlit Cloud 환경변수 로드 (secrets.toml 우선)
 try:
@@ -267,6 +271,18 @@ else:
             if st.button("🔧 Supabase설정", key="supabase_config", use_container_width=True):
                 st.session_state.selected_menu = "Supabase 설정"
                 st.rerun()
+            if st.button("🛠️ 시스템상태", key="system_health", use_container_width=True):
+                st.session_state.selected_menu = "시스템 상태"
+                st.rerun()
+            if st.button("⚡ 성능모니터링", key="performance_monitor", use_container_width=True):
+                st.session_state.selected_menu = "성능 모니터링"
+                st.rerun()
+            if st.button("📋 자동보고서", key="auto_reports", use_container_width=True):
+                st.session_state.selected_menu = "자동 보고서"
+                st.rerun()
+            if st.button("📈 고급분석", key="advanced_analytics", use_container_width=True):
+                st.session_state.selected_menu = "고급 분석"
+                st.rerun()
     
     # 사용자 메뉴 (expander에서 제거하여 직접 노출) - 2024-01-20 수정
     st.sidebar.markdown("### 📝 데이터입력")
@@ -388,4 +404,20 @@ else:
         show_admin_management()
         
     elif menu == "Supabase 설정":
-        show_supabase_config() 
+        show_supabase_config()
+        
+    elif menu == "시스템 상태":
+        from pages.system_health import show_system_health
+        show_system_health()
+        
+    elif menu == "성능 모니터링":
+        from pages.performance import show_performance
+        show_performance()
+        
+    elif menu == "자동 보고서":
+        from pages.auto_reports import show_auto_reports
+        show_auto_reports()
+        
+    elif menu == "고급 분석":
+        from pages.advanced_analytics import show_advanced_analytics
+        show_advanced_analytics() 
