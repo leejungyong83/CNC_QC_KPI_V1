@@ -282,6 +282,20 @@ else:
         st.session_state.selected_menu = "불량 분석"
         st.rerun()
     
+    # 알림 시스템 (새로 추가)
+    st.sidebar.markdown("### 🔔 알림")
+    
+    # 사이드바 알림 요약 표시
+    try:
+        from utils.notification_system import show_notification_sidebar
+        notification_count = show_notification_sidebar()
+    except Exception:
+        notification_count = 0
+    
+    if st.sidebar.button("🔔 알림센터", key="notification_center", use_container_width=True):
+        st.session_state.selected_menu = "알림 센터"
+        st.rerun()
+    
 
     
     # 로그아웃 버튼
@@ -325,6 +339,10 @@ else:
         
     elif menu == "검사 데이터 입력":
         show_inspection_input()
+        
+    elif menu == "알림 센터":
+        from pages.notifications import show_notifications
+        show_notifications()
         
     elif menu == "불량 유형 관리":
         show_defect_type_management()
