@@ -7,6 +7,13 @@ import streamlit as st
 from utils.notification_system import NotificationSystem
 from datetime import datetime, timedelta
 
+# 베트남 시간대 유틸리티 import
+from utils.vietnam_timezone import (
+    get_vietnam_now, get_vietnam_date, 
+    convert_utc_to_vietnam, get_database_time,
+    get_vietnam_display_time
+)
+
 
 def show_notifications():
     """알림 센터 페이지 표시"""

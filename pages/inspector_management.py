@@ -2,6 +2,13 @@ import streamlit as st
 import pandas as pd
 import datetime
 
+# 베트남 시간대 유틸리티 import
+from utils.vietnam_timezone import (
+    get_vietnam_now, get_vietnam_date, 
+    convert_utc_to_vietnam, get_database_time,
+    get_vietnam_display_time
+)
+
 def show_inspector_management():
     """검사자 등록 및 관리 페이지"""
     st.title("🔑 검사자 등록 및 관리")
@@ -283,8 +290,8 @@ def show_inspector_registration():
                 if inspector_id in existing_ids:
                     st.error(f"'{inspector_id}' ID가 이미 존재합니다. 다른 ID를 사용해주세요.")
                 else:
-                    # 새 검사자 추가
-                    current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+                    # 새 검사자 추가 (베트남 시간대 기준)
+                    current_date = get_vietnam_date().strftime("%Y-%m-%d")
                     
                     new_inspector = {
                         "id": inspector_id,

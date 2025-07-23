@@ -3,6 +3,13 @@ import pandas as pd
 from datetime import datetime
 from utils.supabase_client import get_supabase_client
 
+# 베트남 시간대 유틸리티 import
+from utils.vietnam_timezone import (
+    get_vietnam_now, get_vietnam_date, 
+    convert_utc_to_vietnam, get_database_time,
+    get_vietnam_display_time
+)
+
 def show_production_model_management():
     """생산모델 관리 화면 표시 (Supabase 연동)"""
     st.title("🏭 생산모델 관리")
@@ -145,7 +152,7 @@ def show_model_form(supabase):
                         "model_name": model_name,
                         "process": process,
                         "notes": notes if notes else None,
-                        "created_at": datetime.now().isoformat()
+                        "created_at": get_database_time().isoformat()
                     }
                     
                     response = supabase.table('production_models').insert(model_data).execute()
@@ -219,7 +226,7 @@ def show_model_edit(supabase):
                                     "model_name": new_model_name,
                                     "process": new_process,
                                     "notes": new_notes if new_notes else None,
-                                    "updated_at": datetime.now().isoformat()
+                                    "updated_at": get_database_time().isoformat()
                                 }
                                 
                                 response = supabase.table('production_models').update(updated_data).eq('id', selected_row['id']).execute()

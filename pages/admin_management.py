@@ -4,6 +4,13 @@ from datetime import datetime
 import re
 from utils.supabase_client import get_supabase_client
 
+# 베트남 시간대 유틸리티 import
+from utils.vietnam_timezone import (
+    get_vietnam_now, get_vietnam_date, 
+    convert_utc_to_vietnam, get_database_time,
+    get_vietnam_display_time
+)
+
 def show_admin_management():
     """관리자 관리 화면을 표시합니다."""
     st.title("👨‍💼 관리자 관리")
@@ -283,8 +290,8 @@ def show_add_admin(supabase):
                         "is_active": is_active,
                         "notes": notes,
                         "password_hash": password_hash,  # password -> password_hash로 변경
-                        "created_at": datetime.now().isoformat(),
-                        "updated_at": datetime.now().isoformat()
+                        "created_at": get_database_time().isoformat(),
+                        "updated_at": get_database_time().isoformat()
                     }
                     
                     response = supabase.table('admins').insert(admin_data).execute()
@@ -359,7 +366,7 @@ def show_edit_admin(supabase):
                                 "position": position,
                                 "is_active": is_active,
                                 "notes": notes,
-                                "updated_at": datetime.now().isoformat()
+                                "updated_at": get_database_time().isoformat()
                             }
                             
                             if change_password and new_password:

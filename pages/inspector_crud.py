@@ -3,6 +3,13 @@ import pandas as pd
 from datetime import datetime
 from utils.supabase_client import get_supabase_client
 
+# 베트남 시간대 유틸리티 import
+from utils.vietnam_timezone import (
+    get_vietnam_now, get_vietnam_date, 
+    convert_utc_to_vietnam, get_database_time,
+    get_vietnam_display_time
+)
+
 def show_inspector_crud():
     """검사자 CRUD 관리 페이지를 표시합니다."""
     st.header("👥 검사자 데이터베이스 관리")
