@@ -22,6 +22,13 @@ import base64
 from utils.supabase_client import get_supabase_client
 from utils.performance_optimizer import cached
 
+# 베트남 시간대 유틸리티 import
+from utils.vietnam_timezone import (
+    get_vietnam_now, get_vietnam_date, 
+    convert_utc_to_vietnam, get_database_time,
+    get_vietnam_display_time
+)
+
 
 class ReportGenerator:
     """자동 보고서 생성 클래스"""
@@ -69,7 +76,7 @@ class ReportGenerator:
     
     def _get_sample_data(self) -> Dict:
         """샘플 데이터 반환 (DB 연결 실패 시)"""
-        today = date.today()
+        today = get_vietnam_date()
         return {
             'inspections': [
                 {
@@ -391,7 +398,7 @@ class ReportGenerator:
             <div class="header">
                 <h1>🏭 {title}</h1>
                 <p><strong>기간:</strong> {period}</p>
-                <p><strong>생성 시간:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                <p><strong>생성 시간:</strong> {get_vietnam_display_time().strftime('%Y-%m-%d %H:%M:%S')} (UTC+7)</p>
             </div>
             
             <div class="metrics">
@@ -546,11 +553,11 @@ class AutoReportScheduler:
         self.email_sender = EmailSender()
     
     def schedule_daily_report(self, recipient_emails: List[str], send_time: str = "09:00") -> bool:
-        """일별 보고서 스케줄 설정"""
+        """일별 보고서 스케줄 설정 (베트남 시간대 기준)"""
         # Streamlit에서는 실제 스케줄링이 어려우므로 수동 실행 방식으로 구현
         
         try:
-            today = date.today()
+            today = get_vietnam_date()
             html_content, pdf_data = self.report_generator.generate_daily_report(today)
             
             subject = f"[CNC QC] 일별 검사 보고서 - {today.strftime('%Y년 %m월 %d일')}"

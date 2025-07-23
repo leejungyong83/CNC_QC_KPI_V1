@@ -14,6 +14,13 @@ from typing import Dict, List, Tuple, Optional
 import warnings
 warnings.filterwarnings('ignore')
 
+# 베트남 시간대 유틸리티 import
+from utils.vietnam_timezone import (
+    get_vietnam_now, get_vietnam_date, 
+    convert_utc_to_vietnam, get_database_time,
+    get_vietnam_display_time
+)
+
 # 선택적 import - scipy가 없어도 기본 기능은 작동하도록 함
 try:
     from scipy import stats
@@ -76,14 +83,17 @@ class TrendAnalyzer:
             if not data:
                 return self._generate_sample_trend_data(start_date, end_date)
             
-            # DataFrame으로 변환
+            # DataFrame으로 변환 (베트남 시간대 적용)
             df_data = []
             for item in data:
                 inspector_name = item.get('inspectors', {}).get('name', 'Unknown') if item.get('inspectors') else 'Unknown'
                 model_name = item.get('production_models', {}).get('model_name', 'Unknown') if item.get('production_models') else 'Unknown'
                 
+                # 베트남 시간대로 변환
+                inspection_datetime = convert_utc_to_vietnam(item['inspection_date'])
+                
                 df_data.append({
-                    'date': pd.to_datetime(item['inspection_date']),
+                    'date': inspection_datetime,
                     'result': item.get('result', ''),
                     'total_inspected': item.get('total_inspected', 0),
                     'defect_quantity': item.get('defect_quantity', 0),

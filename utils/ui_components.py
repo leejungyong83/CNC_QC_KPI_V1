@@ -10,6 +10,13 @@ import time
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 
+# 베트남 시간대 유틸리티 import
+from utils.vietnam_timezone import (
+    get_vietnam_now, get_vietnam_date, 
+    convert_utc_to_vietnam, get_database_time,
+    get_vietnam_display_time
+)
+
 
 class UITheme:
     """UI 테마 및 색상 관리"""
@@ -260,20 +267,23 @@ class FormComponents:
     
     @staticmethod
     def date_range_picker(key_prefix: str = "", default_days: int = 30):
-        """표준 날짜 범위 선택기"""
+        """표준 날짜 범위 선택기 (베트남 시간대 기준)"""
         col1, col2 = st.columns(2)
+        
+        # 베트남 현재 날짜 기준으로 설정
+        vietnam_today = get_vietnam_date()
         
         with col1:
             start_date = st.date_input(
                 "시작 날짜",
-                value=datetime.now().date() - pd.Timedelta(days=default_days),
+                value=vietnam_today - pd.Timedelta(days=default_days),
                 key=f"{key_prefix}_start_date"
             )
         
         with col2:
             end_date = st.date_input(
                 "종료 날짜",
-                value=datetime.now().date(),
+                value=vietnam_today,
                 key=f"{key_prefix}_end_date"
             )
         
@@ -316,7 +326,8 @@ class DataComponents:
         
         with col3:
             if not df.empty:
-                st.write(f"**마지막 업데이트:** {datetime.now().strftime('%H:%M:%S')}")
+                vietnam_time = get_vietnam_display_time()
+                st.write(f"**마지막 업데이트:** {vietnam_time.strftime('%H:%M:%S')}")
         
         # 데이터프레임 표시
         st.dataframe(df, height=height, use_container_width=True)
@@ -324,10 +335,11 @@ class DataComponents:
         # 다운로드 버튼
         if not df.empty:
             csv = df.to_csv(index=False, encoding='utf-8-sig')
+            vietnam_time = get_vietnam_display_time()
             st.download_button(
                 label="📥 CSV 다운로드",
                 data=csv.encode('utf-8-sig'),
-                file_name=f"{title.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                file_name=f"{title.replace(' ', '_')}_{vietnam_time.strftime('%Y%m%d_%H%M')}.csv",
                 mime="text/csv",
                 use_container_width=True
             )

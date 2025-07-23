@@ -13,6 +13,13 @@ import json
 from functools import wraps
 from utils.supabase_client import get_supabase_client
 
+# 베트남 시간대 유틸리티 import
+from utils.vietnam_timezone import (
+    get_vietnam_now, get_vietnam_date, 
+    convert_utc_to_vietnam, get_database_time,
+    get_vietnam_display_time
+)
+
 
 class CacheManager:
     """통합 캐시 관리 클래스"""
@@ -174,12 +181,12 @@ def cached(ttl: int = 300, key_prefix: str = ""):
             # 결과를 캐시에 저장
             cache_manager.set(cache_key, result, ttl)
             
-            # 성능 로그 기록 (선택적)
+            # 성능 로그 기록 (선택적, 베트남 시간대 적용)
             if execution_time > 1.0:  # 1초 이상 걸린 경우
                 st.session_state.setdefault('slow_queries', []).append({
                     'function': func_name,
                     'execution_time': execution_time,
-                    'timestamp': datetime.now()
+                    'timestamp': get_vietnam_display_time()
                 })
             
             return result
@@ -228,8 +235,8 @@ class QueryOptimizer:
         try:
             supabase = get_supabase_client()
             
-            # 최근 30일 데이터만 조회 (성능 최적화)
-            thirty_days_ago = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+            # 최근 30일 데이터만 조회 (성능 최적화, 베트남 시간대 기준)
+            thirty_days_ago = (get_vietnam_now() - timedelta(days=30)).strftime('%Y-%m-%d')
             
             # 필요한 컬럼만 선택
             result = supabase.table('inspection_data') \
