@@ -8,6 +8,7 @@ from utils.vietnam_timezone import (
     convert_utc_to_vietnam, get_database_time,
     get_vietnam_display_time
 )
+from utils.inspector_utils import get_all_inspectors
 
 def show_inspector_management():
     """검사자 등록 및 관리 페이지"""
@@ -29,14 +30,10 @@ def show_inspector_management():
         show_inspector_statistics()
 
 def initialize_inspector_data():
-    """검사자 데이터 초기화"""
-    if "inspectors_data" not in st.session_state:
-        st.session_state.inspectors_data = [
-            {"id": "dlwjddyd83@gmail.com", "name": "관리자", "department": "관리부", "process": "관리", "created_at": "2024-01-01", "last_login": "2025-02-28 14:33:13", "status": "활성"},
-            {"id": "user", "name": "일반사용자1", "department": "관리부", "process": "관리", "created_at": "2024-01-02", "last_login": "2024-01-14 00:00:00", "status": "활성"},
-            {"id": "inspector1", "name": "검사자1", "department": "생산부", "process": "선반", "created_at": "2024-02-01", "last_login": "2024-02-20 00:00:00", "status": "활성"},
-            {"id": "inspector2", "name": "검사자2", "department": "품질부", "process": "밀링", "created_at": "2024-02-10", "last_login": "2024-02-15 00:00:00", "status": "비활성"},
-        ]
+    """검사자 데이터 초기화 (로컬 확장 버전)"""
+    # 기본 검사자 데이터 초기화는 utils에서 처리
+    from utils.inspector_utils import initialize_inspector_data as init_base_data
+    init_base_data()
     
     # 필터 상태 초기화
     if "filter_dept" not in st.session_state:
@@ -353,10 +350,3 @@ def show_inspector_statistics():
     else:
         st.info("검사자 데이터가 없습니다.")
 
-def get_all_inspectors():
-    """모든 검사자 정보를 반환하는 함수"""
-    # 세션 상태에 검사자 데이터가 없으면 초기화
-    if "inspectors_data" not in st.session_state:
-        initialize_inspector_data()
-    
-    return st.session_state.inspectors_data 

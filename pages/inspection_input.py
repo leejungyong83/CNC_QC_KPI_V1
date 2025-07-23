@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, date
 import io
 from PIL import Image
 import uuid
-from pages.inspector_management import get_all_inspectors
+from utils.inspector_utils import get_all_inspectors
 from pages.item_management import get_all_models
 from utils.supabase_client import get_supabase_client
 from utils.defect_utils import get_defect_type_names
