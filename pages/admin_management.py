@@ -10,6 +10,7 @@ from utils.vietnam_timezone import (
     convert_utc_to_vietnam, get_database_time,
     get_vietnam_display_time
 )
+from utils.data_converter import convert_supabase_data_timezone, convert_dataframe_timezone
 
 def show_admin_management():
     """관리자 관리 화면을 표시합니다."""
@@ -180,8 +181,9 @@ def show_admin_list(supabase):
         response = supabase.table('admins').select('*').order('created_at', desc=True).execute()
         
         if response.data:
-            # 데이터프레임으로 변환
-            df = pd.DataFrame(response.data)
+            # 시간대 변환 후 데이터프레임으로 변환
+            converted_data = convert_supabase_data_timezone(response.data)
+            df = pd.DataFrame(converted_data)
             
             # 컬럼 순서 정리
             display_columns = []

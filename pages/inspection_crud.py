@@ -8,6 +8,7 @@ from pages.inspector_management import get_all_inspectors
 from pages.item_management import get_all_models
 from utils.supabase_client import get_supabase_client
 from utils.vietnam_timezone import get_database_time, get_vietnam_now
+from utils.data_converter import convert_supabase_data_timezone, convert_dataframe_timezone
 from utils.defect_utils import get_defect_type_names
 import random
 
@@ -93,7 +94,9 @@ def search_inspection_data(start_date, end_date, selected_model, selected_inspec
         response = supabase.table('inspection_data').select('*').execute()
         
         if response.data:
-            df = pd.DataFrame(response.data)
+            # 시간대 변환 적용
+            converted_data = convert_supabase_data_timezone(response.data)
+            df = pd.DataFrame(converted_data)
             
             # 날짜 필터링
             df['inspection_date'] = pd.to_datetime(df['inspection_date'])

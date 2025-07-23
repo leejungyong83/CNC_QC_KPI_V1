@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 from utils.supabase_client import get_supabase_client
 from utils.vietnam_timezone import get_database_time
+from utils.data_converter import convert_supabase_data_timezone, convert_dataframe_timezone
 
 def show_user_crud():
     """사용자 CRUD 관리 페이지를 표시합니다."""
@@ -146,8 +147,9 @@ def show_user_list(supabase):
         response = supabase.table('users').select('*').order('created_at', desc=True).execute()
         
         if response.data:
-            # 데이터프레임으로 변환
-            df = pd.DataFrame(response.data)
+            # 시간대 변환 후 데이터프레임으로 변환
+            converted_data = convert_supabase_data_timezone(response.data)
+            df = pd.DataFrame(converted_data)
             
             if is_real_supabase:
                 # 실제 Supabase - 현재 테이블 구조에 맞는 컬럼 순서
