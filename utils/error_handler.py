@@ -11,6 +11,13 @@ from typing import Optional, Dict, Any, Callable
 import functools
 import os
 
+# 베트남 시간대 유틸리티 import
+from utils.vietnam_timezone import (
+    get_vietnam_now, get_vietnam_date, 
+    convert_utc_to_vietnam, get_database_time,
+    get_vietnam_display_time
+)
+
 
 class ErrorHandler:
     """통합 에러 핸들러 클래스"""
@@ -42,9 +49,9 @@ class ErrorHandler:
         # 에러 카운트 증가
         self.error_count += 1
         
-        # 에러 정보 수집
+        # 에러 정보 수집 (베트남 시간대 적용)
         error_info = {
-            'timestamp': datetime.now(),
+            'timestamp': get_vietnam_display_time(),
             'error_type': type(error).__name__,
             'error_message': str(error),
             'context': context,
@@ -223,9 +230,9 @@ class ErrorHandler:
             error_type = error['error_type']
             error_types[error_type] = error_types.get(error_type, 0) + 1
         
-        # 최근 1시간 에러 수
+        # 최근 1시간 에러 수 (베트남 시간대 기준)
         recent_errors = sum(1 for error in self.last_errors 
-                          if (datetime.now() - error['timestamp']).seconds < 3600)
+                          if (get_vietnam_display_time() - error['timestamp']).seconds < 3600)
         
         return {
             'total_errors': self.error_count,
@@ -255,7 +262,7 @@ class ErrorHandler:
         
         with col4:
             if stats['last_error_time']:
-                time_diff = datetime.now() - stats['last_error_time']
+                time_diff = get_vietnam_display_time() - stats['last_error_time']
                 if time_diff.seconds < 60:
                     last_error = f"{time_diff.seconds}초 전"
                 elif time_diff.seconds < 3600:

@@ -14,6 +14,13 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 import re
 
+# 베트남 시간대 유틸리티 import
+from utils.vietnam_timezone import (
+    get_vietnam_now, get_vietnam_date, 
+    convert_utc_to_vietnam, get_database_time,
+    get_vietnam_display_time
+)
+
 class AuthenticationSystem:
     """강화된 인증 시스템 클래스"""
     
@@ -388,14 +395,14 @@ class AuthenticationSystem:
         with st.expander("로그인 기록"):
             st.info("로그인 기록 기능은 준비 중입니다.")
         
-        # 세션 관리
+        # 세션 관리 (베트남 시간대 표시)
         with st.expander("세션 관리"):
             if st.session_state.auth_session_start:
-                session_start = datetime.fromtimestamp(st.session_state.auth_session_start)
-                st.write(f"**세션 시작:** {session_start.strftime('%Y-%m-%d %H:%M:%S')}")
+                session_start = convert_utc_to_vietnam(datetime.fromtimestamp(st.session_state.auth_session_start))
+                st.write(f"**세션 시작:** {session_start.strftime('%Y-%m-%d %H:%M:%S')} (UTC+7)")
                 
                 if st.session_state.auth_last_activity:
-                    last_activity = datetime.fromtimestamp(st.session_state.auth_last_activity)
+                    last_activity = convert_utc_to_vietnam(datetime.fromtimestamp(st.session_state.auth_last_activity))
                     st.write(f"**마지막 활동:** {last_activity.strftime('%Y-%m-%d %H:%M:%S')}")
                 
                 if st.button("모든 세션 종료"):

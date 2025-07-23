@@ -14,6 +14,13 @@ import time
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 
+# 베트남 시간대 유틸리티 import  
+from utils.vietnam_timezone import (
+    get_vietnam_now, get_vietnam_date, 
+    convert_utc_to_vietnam, get_database_time,
+    get_vietnam_display_time
+)
+
 class TwoFactorAuth:
     """2단계 인증 시스템 클래스"""
     

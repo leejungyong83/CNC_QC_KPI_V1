@@ -13,6 +13,13 @@ from PIL import Image
 import uuid
 from utils.supabase_client import get_supabase_client
 
+# 베트남 시간대 유틸리티 import
+from utils.vietnam_timezone import (
+    get_vietnam_now, get_vietnam_date, 
+    convert_utc_to_vietnam, get_database_time,
+    get_vietnam_display_time
+)
+
 
 class FileManager:
     """파일 관리 클래스"""
@@ -100,8 +107,8 @@ class FileManager:
         st.subheader("📊 Excel 보고서 내보내기")
         
         try:
-            # 현재 시간을 포함한 파일명 생성
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            # 베트남 시간을 포함한 파일명 생성
+            timestamp = get_vietnam_display_time().strftime("%Y%m%d_%H%M%S")
             filename = f"{filename_prefix}_{timestamp}.xlsx"
             
             # BytesIO 객체 생성
@@ -246,9 +253,9 @@ class FileManager:
         except Exception:
             pass
         
-        # 보고서 메타정보
+        # 보고서 메타정보 (베트남 시간대)
         meta_info = [{
-            '보고서 생성일시': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            '보고서 생성일시': get_vietnam_display_time().strftime('%Y-%m-%d %H:%M:%S'),
             '보고서 기간': f"{start_date} ~ {end_date}",
             '시스템': 'CNC QC KPI 시스템',
             '버전': '1.0'
@@ -278,19 +285,20 @@ def show_export_tab(file_manager):
     """Excel 내보내기 탭"""
     st.subheader("📊 Excel 보고서 내보내기")
     
-    # 기간 선택
+    # 기간 선택 (베트남 시간대 기준)
+    vietnam_today = get_vietnam_date()
     col1, col2 = st.columns(2)
     with col1:
         start_date = st.date_input(
             "시작 날짜",
-            value=datetime.now().date() - timedelta(days=30),
-            max_value=datetime.now().date()
+            value=vietnam_today - timedelta(days=30),
+            max_value=vietnam_today
         )
     with col2:
         end_date = st.date_input(
             "종료 날짜",
-            value=datetime.now().date(),
-            max_value=datetime.now().date()
+            value=vietnam_today,
+            max_value=vietnam_today
         )
     
     if start_date > end_date:

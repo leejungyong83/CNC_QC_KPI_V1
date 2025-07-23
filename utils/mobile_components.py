@@ -8,6 +8,13 @@ import pandas as pd
 from datetime import datetime, date
 from utils.supabase_client import get_supabase_client
 
+# 베트남 시간대 유틸리티 import
+from utils.vietnam_timezone import (
+    get_vietnam_now, get_vietnam_date, 
+    convert_utc_to_vietnam, get_database_time,
+    get_vietnam_display_time
+)
+
 
 def is_mobile():
     """모바일 디바이스인지 확인 (간단한 방법)"""
@@ -86,7 +93,7 @@ def mobile_quick_input():
         col1, col2 = st.columns(2)
         
         with col1:
-            inspection_date = st.date_input("📅 검사일", value=datetime.now().date())
+            inspection_date = st.date_input("📅 검사일", value=get_vietnam_date())
         
         with col2:
             # 검사자 선택 (자주 사용하는 검사자 우선)
@@ -273,10 +280,10 @@ def get_frequent_models():
 
 
 def get_today_summary():
-    """오늘의 요약 데이터"""
+    """오늘의 요약 데이터 (베트남 시간대 기준)"""
     try:
         supabase = get_supabase_client()
-        today = datetime.now().date().strftime('%Y-%m-%d')
+        today = get_vietnam_date().strftime('%Y-%m-%d')
         
         result = supabase.table('inspection_data') \
             .select('result, total_inspected, defect_quantity') \
