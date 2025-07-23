@@ -9,6 +9,13 @@ from datetime import datetime, date, timedelta
 from utils.report_generator import report_generator, auto_scheduler
 from typing import List
 
+# 베트남 시간대 유틸리티 import
+from utils.vietnam_timezone import (
+    get_vietnam_now, get_vietnam_date, 
+    convert_utc_to_vietnam, get_database_time,
+    get_vietnam_display_time
+)
+
 
 def show_auto_reports():
     """자동 보고서 페이지 표시"""
@@ -43,12 +50,14 @@ def show_report_generation():
     
     col1, col2 = st.columns(2)
     
-    # 날짜 선택
+    # 날짜 선택 (베트남 시간대 기준)
+    vietnam_today = get_vietnam_date()
+    
     if report_type == "일별 보고서":
         with col1:
             target_date = st.date_input(
                 "보고서 날짜",
-                value=date.today() - timedelta(days=1),
+                value=vietnam_today - timedelta(days=1),
                 help="보고서를 생성할 날짜를 선택하세요"
             )
         
@@ -60,7 +69,7 @@ def show_report_generation():
         with col1:
             end_date = st.date_input(
                 "주말 날짜 (토요일)",
-                value=date.today() - timedelta(days=1),
+                value=vietnam_today - timedelta(days=1),
                 help="주의 마지막 날짜를 선택하세요"
             )
         
@@ -69,12 +78,13 @@ def show_report_generation():
                 generate_and_show_weekly_report(end_date)
     
     elif report_type == "월별 보고서":
+        vietnam_now = get_vietnam_now()
         with col1:
             year = st.number_input(
                 "연도",
                 min_value=2020,
                 max_value=2030,
-                value=datetime.now().year,
+                value=vietnam_now.year,
                 step=1
             )
         
@@ -83,7 +93,7 @@ def show_report_generation():
                 "월",
                 min_value=1,
                 max_value=12,
-                value=datetime.now().month,
+                value=vietnam_now.month,
                 step=1
             )
         

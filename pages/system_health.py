@@ -10,6 +10,13 @@ from datetime import datetime, timedelta
 import time
 import os
 
+# 베트남 시간대 유틸리티 import
+from utils.vietnam_timezone import (
+    get_vietnam_now, get_vietnam_date, 
+    convert_utc_to_vietnam, get_database_time,
+    get_vietnam_display_time
+)
+
 
 def show_system_health():
     """시스템 상태 페이지 표시"""
@@ -108,7 +115,7 @@ def show_system_overview():
         st.metric("가동시간", uptime, delta="안정")
     
     with perf_col4:
-        last_check = datetime.now().strftime("%H:%M:%S")
+        last_check = get_vietnam_display_time().strftime("%H:%M:%S")
         st.metric("마지막 확인", last_check, delta="방금 전")
     
     # 최근 활동
@@ -484,13 +491,13 @@ def show_error_monitoring():
 
 
 def get_system_uptime():
-    """시스템 가동시간 계산 (근사치)"""
+    """시스템 가동시간 계산 (근사치, 베트남 시간대 기준)"""
     # 실제로는 서버 시작 시간을 기록해야 하지만, 
     # 여기서는 세션 시작 시간을 기준으로 함
     if 'app_start_time' not in st.session_state:
-        st.session_state.app_start_time = datetime.now()
+        st.session_state.app_start_time = get_vietnam_display_time()
     
-    uptime = datetime.now() - st.session_state.app_start_time
+    uptime = get_vietnam_display_time() - st.session_state.app_start_time
     
     if uptime.days > 0:
         return f"{uptime.days}일 {uptime.seconds//3600}시간"

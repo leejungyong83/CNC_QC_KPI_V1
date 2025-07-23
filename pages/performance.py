@@ -9,6 +9,13 @@ import pandas as pd
 from datetime import datetime, timedelta
 import time
 
+# 베트남 시간대 유틸리티 import
+from utils.vietnam_timezone import (
+    get_vietnam_now, get_vietnam_date, 
+    convert_utc_to_vietnam, get_database_time,
+    get_vietnam_display_time
+)
+
 
 def show_performance():
     """성능 모니터링 페이지 표시"""
@@ -117,9 +124,12 @@ def show_cache_management():
                 age = current_time - cache_data['created_at']
                 remaining_ttl = cache_data['expires_at'] - current_time
                 
+                # 베트남 시간대로 변환하여 표시
+                created_at_vietnam = convert_utc_to_vietnam(datetime.fromtimestamp(cache_data['created_at']))
+                
                 cache_details.append({
                     '캐시 키': key.replace(cache_manager.cache_prefix, ''),
-                    '생성 시간': datetime.fromtimestamp(cache_data['created_at']).strftime('%H:%M:%S'),
+                    '생성 시간': created_at_vietnam.strftime('%H:%M:%S'),
                     '조회 횟수': cache_data['hits'],
                     '나이 (초)': f"{age:.0f}",
                     '남은 TTL (초)': f"{remaining_ttl:.0f}" if remaining_ttl > 0 else "만료됨",
@@ -157,12 +167,13 @@ def show_performance_analysis():
     if slow_queries:
         st.write("### 🐌 느린 쿼리 분석")
         
-        # 시간별 분석
+        # 시간별 분석 (베트남 시간대 기준)
         if len(slow_queries) > 1:
             # 최근 24시간 내 데이터만
+            vietnam_now = get_vietnam_display_time()
             recent_queries = [
                 q for q in slow_queries 
-                if (datetime.now() - q['timestamp']).total_seconds() < 86400
+                if (vietnam_now - q['timestamp']).total_seconds() < 86400
             ]
             
             if recent_queries:

@@ -9,6 +9,13 @@ import numpy as np
 from datetime import datetime, date, timedelta
 from utils.advanced_analytics import trend_analyzer, predictive_analyzer, spc_analyzer
 
+# 베트남 시간대 유틸리티 import
+from utils.vietnam_timezone import (
+    get_vietnam_now, get_vietnam_date, 
+    convert_utc_to_vietnam, get_database_time,
+    get_vietnam_display_time
+)
+
 
 def show_advanced_analytics():
     """고급 분석 페이지 표시"""
@@ -34,21 +41,22 @@ def show_trend_analysis():
     """트렌드 분석 탭"""
     st.subheader("📊 트렌드 분석")
     
-    # 분석 기간 설정
+    # 분석 기간 설정 (베트남 시간대 기준)
     col1, col2 = st.columns(2)
+    vietnam_today = get_vietnam_date()
     
     with col1:
         start_date = st.date_input(
             "시작 날짜",
-            value=date.today() - timedelta(days=30),
-            max_value=date.today()
+            value=vietnam_today - timedelta(days=30),
+            max_value=vietnam_today
         )
     
     with col2:
         end_date = st.date_input(
             "종료 날짜",
-            value=date.today(),
-            max_value=date.today()
+            value=vietnam_today,
+            max_value=vietnam_today
         )
     
     if start_date >= end_date:
@@ -508,9 +516,9 @@ def show_comprehensive_analysis():
 
 
 def generate_comprehensive_report(has_trend: bool, has_prediction: bool, has_spc: bool):
-    """종합 분석 보고서 생성"""
+    """종합 분석 보고서 생성 (베트남 시간대)"""
     report = {
-        'generated_at': datetime.now(),
+        'generated_at': get_vietnam_display_time(),
         'has_trend': has_trend,
         'has_prediction': has_prediction,
         'has_spc': has_spc,
@@ -569,8 +577,8 @@ def display_comprehensive_report():
     """종합 보고서 표시"""
     report = st.session_state.comprehensive_report
     
-    # 보고서 헤더
-    st.write(f"**생성 시간:** {report['generated_at'].strftime('%Y-%m-%d %H:%M:%S')}")
+    # 보고서 헤더 (베트남 시간 표시)
+    st.write(f"**생성 시간:** {report['generated_at'].strftime('%Y-%m-%d %H:%M:%S')} (UTC+7)")
     
     # 분석 범위
     included_analyses = []
@@ -754,10 +762,11 @@ def download_analysis_data():
         
         excel_data = output.getvalue()
         
+        vietnam_time = get_vietnam_display_time()
         st.download_button(
             label="📊 Excel 파일 다운로드",
             data=excel_data,
-            file_name=f"고급분석결과_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+            file_name=f"고급분석결과_{vietnam_time.strftime('%Y%m%d_%H%M')}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True
         )
