@@ -292,8 +292,8 @@ def show_add_admin(supabase):
                         "is_active": is_active,
                         "notes": notes,
                         "password_hash": password_hash,  # password -> password_hash로 변경
-                        "created_at": get_database_time().isoformat(),  # 베트남 시간대 timestamptz
-                        "updated_at": get_database_time().isoformat()   # 베트남 시간대 timestamptz
+                        "created_at": get_database_time().isoformat()  # 베트남 시간대 timestamptz
+                        # updated_at은 데이터베이스 기본값 사용
                     }
                     
                     response = supabase.table('admins').insert(admin_data).execute()
@@ -368,7 +368,7 @@ def show_edit_admin(supabase):
                                 "position": position,
                                 "is_active": is_active,
                                 "notes": notes,
-                                "updated_at": get_database_time().isoformat()  # 베트남 시간대 timestamptz
+                                # updated_at은 데이터베이스 트리거에서 자동 처리
                             }
                             
                             if change_password and new_password:

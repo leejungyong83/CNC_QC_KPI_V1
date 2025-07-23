@@ -226,7 +226,7 @@ def show_model_edit(supabase):
                                     "model_name": new_model_name,
                                     "process": new_process,
                                     "notes": new_notes if new_notes else None,
-                                    "updated_at": get_database_time().isoformat()  # 베트남 시간대 timestamptz
+                                    # updated_at은 데이터베이스 트리거에서 자동 처리
                                 }
                                 
                                 response = supabase.table('production_models').update(updated_data).eq('id', selected_row['id']).execute()

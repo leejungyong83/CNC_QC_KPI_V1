@@ -278,8 +278,8 @@ def show_inspection_input_form():
                     "defect_quantity": total_defect_count,
                     "result": result,
                     "notes": notes if notes else None,
-                    "created_at": get_database_time().isoformat(),  # 베트남 시간대로 생성 시간 저장
-                    "updated_at": get_database_time().isoformat()   # 베트남 시간대로 수정 시간 저장
+                    "created_at": get_database_time().isoformat()  # 베트남 시간대로 생성 시간 저장
+                    # updated_at은 데이터베이스 기본값(now()) 사용
                 }
                 
                 # Supabase에 검사 데이터 저장
