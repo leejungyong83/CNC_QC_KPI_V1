@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import re
+import pytz
 from utils.supabase_client import get_supabase_client
 
 # 베트남 시간대 유틸리티 import
@@ -292,7 +293,7 @@ def show_add_admin(supabase):
                         "is_active": is_active,
                         "notes": notes,
                         "password_hash": password_hash,  # password -> password_hash로 변경
-                        "created_at": get_database_time().isoformat()  # 베트남 시간대 timestamptz
+                        "created_at": datetime.now(pytz.UTC).isoformat()  # UTC로 저장 (표준 방식)
                         # updated_at은 데이터베이스 기본값 사용
                     }
                     

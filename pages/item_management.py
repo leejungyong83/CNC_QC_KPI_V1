@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import pytz
 from utils.supabase_client import get_supabase_client
 
 # 베트남 시간대 유틸리티 import
@@ -152,7 +153,7 @@ def show_model_form(supabase):
                         "model_name": model_name,
                         "process": process,
                         "notes": notes if notes else None,
-                        "created_at": get_database_time().isoformat()  # 베트남 시간대 timestamptz
+                        "created_at": datetime.now(pytz.UTC).isoformat()  # UTC로 저장 (표준 방식)
                     }
                     
                     response = supabase.table('production_models').insert(model_data).execute()

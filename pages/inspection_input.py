@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, date
 import io
 from PIL import Image
 import uuid
+import pytz
 from utils.inspector_utils import get_all_inspectors
 from pages.item_management import get_all_models
 from utils.supabase_client import get_supabase_client
@@ -278,7 +279,7 @@ def show_inspection_input_form():
                     "defect_quantity": total_defect_count,
                     "result": result,
                     "notes": notes if notes else None,
-                    "created_at": get_database_time().isoformat()  # 베트남 시간대로 생성 시간 저장
+                    "created_at": datetime.now(pytz.UTC).isoformat()  # UTC로 저장 (표준 방식)
                     # updated_at은 데이터베이스 기본값(now()) 사용
                 }
                 
@@ -298,7 +299,7 @@ def show_inspection_input_form():
                                 "defect_type": defect_type,  # 기존 테이블 구조에 맞춘 필드명
                                 "defect_count": count,
                                 "description": defect_description if defect_description else None,  # 기존 테이블 구조에 맞춘 필드명
-                                "created_at": get_database_time().isoformat()  # 베트남 시간대로 불량 데이터 생성 시간
+                                "created_at": datetime.now(pytz.UTC).isoformat()  # UTC로 저장 (표준 방식)
                             }
                             
                             defect_result = supabase.table('defects').insert(defect_record).execute()
