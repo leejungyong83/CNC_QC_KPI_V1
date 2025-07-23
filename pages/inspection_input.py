@@ -9,6 +9,7 @@ from pages.item_management import get_all_models
 from utils.supabase_client import get_supabase_client
 from utils.defect_utils import get_defect_type_names
 from utils.vietnam_timezone import get_database_time, get_vietnam_display_time, get_vietnam_now
+from utils.data_converter import convert_supabase_data_timezone, convert_dataframe_timezone
 import random
 
 def show_inspection_input():
@@ -370,9 +371,12 @@ def show_inspection_data_view():
             models = {model['id']: model for model in models_result.data} if models_result.data else {}
             
             if result.data:
+                # 시간대 변환
+                converted_data = convert_supabase_data_timezone(result.data)
+                
                 # 데이터프레임 생성
                 df_data = []
-                for row in result.data:
+                for row in converted_data:
                     inspector = inspectors.get(row.get('inspector_id'), {})
                     model = models.get(row.get('model_id'), {})
                     
