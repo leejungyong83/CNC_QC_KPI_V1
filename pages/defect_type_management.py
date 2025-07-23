@@ -249,7 +249,10 @@ def get_all_defect_types():
         response = supabase.table("defect_types").select("*").order("created_at", desc=True).execute()
         
         if response.data:
-            return pd.DataFrame(response.data)
+            # 시간대 변환 적용
+            from utils.data_converter import convert_supabase_data_timezone
+            converted_data = convert_supabase_data_timezone(response.data)
+            return pd.DataFrame(converted_data)
         else:
             return pd.DataFrame()
     

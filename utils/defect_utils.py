@@ -16,8 +16,10 @@ def get_all_defect_types():
         # defect_types 테이블에서 모든 데이터 조회 - 캐싱 없이 항상 최신 데이터 조회
         response = supabase.table('defect_types').select('*').order('name').execute()
         
-        # 결과를 DataFrame으로 변환
-        df = pd.DataFrame(response.data)
+        # 시간대 변환 후 DataFrame으로 변환
+        from utils.data_converter import convert_supabase_data_timezone
+        converted_data = convert_supabase_data_timezone(response.data)
+        df = pd.DataFrame(converted_data)
         
         # 결과가 없으면 기본 불량 유형 설정
         if df.empty:
@@ -26,7 +28,8 @@ def get_all_defect_types():
             
             # 다시 조회
             response = supabase.table('defect_types').select('*').order('name').execute()
-            df = pd.DataFrame(response.data)
+            converted_data = convert_supabase_data_timezone(response.data)
+            df = pd.DataFrame(converted_data)
             
             # 여전히 결과가 없으면 하드코딩된 기본값 반환
             if df.empty:
