@@ -267,7 +267,7 @@ def show_inspection_input_form():
                 # 검사자 ID 가져오기 (UUID)
                 inspector_uuid = selected_inspector['id'] if selected_inspector else None
                 
-                # 검사 데이터 저장
+                # 검사 데이터 저장 (베트남 시간대로)
                 inspection_data = {
                     "inspection_date": inspection_date.isoformat(),
                     "inspector_id": inspector_uuid,
@@ -277,7 +277,9 @@ def show_inspection_input_form():
                     "total_inspected": total_inspected,
                     "defect_quantity": total_defect_count,
                     "result": result,
-                    "notes": notes if notes else None
+                    "notes": notes if notes else None,
+                    "created_at": get_database_time().isoformat(),  # 베트남 시간대로 생성 시간 저장
+                    "updated_at": get_database_time().isoformat()   # 베트남 시간대로 수정 시간 저장
                 }
                 
                 # Supabase에 검사 데이터 저장
@@ -295,7 +297,8 @@ def show_inspection_input_form():
                                 "inspection_id": inspection_id,
                                 "defect_type": defect_type,
                                 "defect_count": count,
-                                "description": defect_description if defect_description else None
+                                "description": defect_description if defect_description else None,
+                                "created_at": get_database_time().isoformat()  # 베트남 시간대로 불량 데이터 생성 시간
                             }
                             
                             defect_result = supabase.table('defects').insert(defect_record).execute()

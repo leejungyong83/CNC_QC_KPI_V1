@@ -152,7 +152,7 @@ def show_model_form(supabase):
                         "model_name": model_name,
                         "process": process,
                         "notes": notes if notes else None,
-                        "created_at": get_database_time().isoformat()
+                        "created_at": get_database_time().isoformat()  # 베트남 시간대 timestamptz
                     }
                     
                     response = supabase.table('production_models').insert(model_data).execute()
@@ -226,7 +226,7 @@ def show_model_edit(supabase):
                                     "model_name": new_model_name,
                                     "process": new_process,
                                     "notes": new_notes if new_notes else None,
-                                    "updated_at": get_database_time().isoformat()
+                                    "updated_at": get_database_time().isoformat()  # 베트남 시간대 timestamptz
                                 }
                                 
                                 response = supabase.table('production_models').update(updated_data).eq('id', selected_row['id']).execute()

@@ -12,7 +12,7 @@ from utils.vietnam_timezone import convert_utc_to_vietnam, get_vietnam_display_t
 def convert_supabase_data_timezone(data: List[Dict[str, Any]], 
                                    time_columns: List[str] = None) -> List[Dict[str, Any]]:
     """
-    Supabase에서 조회한 데이터의 시간 컬럼들을 베트남 시간대로 변환
+    Supabase에서 조회한 timestamptz 데이터를 베트남 시간대로 변환
     
     Args:
         data: Supabase에서 조회한 데이터 리스트
@@ -39,9 +39,31 @@ def convert_supabase_data_timezone(data: List[Dict[str, Any]],
         for column in time_columns:
             if column in converted_row and converted_row[column]:
                 try:
-                    # UTC 시간을 베트남 시간으로 변환
-                    utc_time = converted_row[column]
-                    vietnam_time = convert_utc_to_vietnam(utc_time)
+                    # timestamptz 데이터를 베트남 시간으로 변환
+                    time_value = converted_row[column]
+                    
+                    # timestamptz 형식이면 베트남 시간대로 해석
+                    if isinstance(time_value, str):
+                        # ISO 형식이면 직접 파싱
+                        if 'T' in time_value and ('+' in time_value or 'Z' in time_value):
+                            from datetime import datetime
+                            import pytz
+                            
+                            # UTC 시간으로 파싱 후 베트남 시간으로 변환
+                            if time_value.endswith('Z'):
+                                time_value = time_value.replace('Z', '+00:00')
+                            
+                            dt = datetime.fromisoformat(time_value)
+                            vietnam_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+                            
+                            if dt.tzinfo is None:
+                                dt = pytz.UTC.localize(dt)
+                            
+                            vietnam_time = dt.astimezone(vietnam_tz)
+                        else:
+                            vietnam_time = convert_utc_to_vietnam(time_value)
+                    else:
+                        vietnam_time = convert_utc_to_vietnam(time_value)
                     
                     # 날짜만 필요한 경우와 전체 시간이 필요한 경우 구분
                     if column == 'inspection_date':
@@ -51,7 +73,7 @@ def convert_supabase_data_timezone(data: List[Dict[str, Any]],
                         
                 except Exception as e:
                     # 변환 실패 시 원본 유지
-                    print(f"시간 변환 실패 ({column}): {e}")
+                    print(f"timestamptz 변환 실패 ({column}): {e}")
                     pass
         
         converted_data.append(converted_row)

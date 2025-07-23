@@ -82,9 +82,20 @@ def get_vietnam_display_time(utc_timestamp: Optional[str] = None) -> datetime:
         return vietnam_timezone.get_vietnam_now()
 
 def get_database_time() -> datetime:
-    '''?????? ??? UTC ?? (datetime ??? ??)'''
-    return datetime.now(vietnam_timezone.utc_tz)
+    '''데이터베이스 저장용 베트남 시간 (timestamptz 호환)'''
+    return vietnam_timezone.get_vietnam_now()
+
+def get_database_time_iso() -> str:
+    '''데이터베이스 저장용 베트남 시간 ISO 형식 (timestamptz)'''
+    vietnam_time = vietnam_timezone.get_vietnam_now()
+    return vietnam_time.isoformat()
 
 def convert_utc_to_vietnam(utc_datetime: Union[str, datetime]) -> datetime:
-    '''UTC ??? ??? ???? ??'''
+    '''UTC 시간을 베트남 시간으로 변환'''
     return vietnam_timezone.to_vietnam_time(utc_datetime)
+
+def get_vietnam_timestamptz() -> str:
+    '''베트남 시간대 포함 timestamptz 형식 반환'''
+    vietnam_time = vietnam_timezone.get_vietnam_now()
+    # PostgreSQL timestamptz 형식에 맞게 반환
+    return vietnam_time.strftime('%Y-%m-%d %H:%M:%S%z')
