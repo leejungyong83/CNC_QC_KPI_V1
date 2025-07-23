@@ -295,9 +295,9 @@ def show_inspection_input_form():
                         for defect_type, count in defect_data.items():
                             defect_record = {
                                 "inspection_id": inspection_id,
-                                "defect_type": defect_type,
+                                "defect_type": defect_type,  # 기존 테이블 구조에 맞춘 필드명
                                 "defect_count": count,
-                                "description": defect_description if defect_description else None,
+                                "description": defect_description if defect_description else None,  # 기존 테이블 구조에 맞춘 필드명
                                 "created_at": get_database_time().isoformat()  # 베트남 시간대로 불량 데이터 생성 시간
                             }
                             

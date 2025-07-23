@@ -514,8 +514,10 @@ def show_defect_analysis(filter_params):
             st.warning("⚠️ 선택한 조건에 해당하는 검사실적이 없습니다.")
             return
         
-        # 불량 데이터 처리
-        defects_df = pd.DataFrame(defects_result.data)
+        # 불량 데이터 처리 (시간대 변환 적용)
+        from utils.data_converter import convert_supabase_data_timezone
+        defects_data_converted = convert_supabase_data_timezone(defects_result.data)
+        defects_df = pd.DataFrame(defects_data_converted)
         
         # 불량유형별 집계
         defect_summary = defects_df.groupby('defect_type').agg({
