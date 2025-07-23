@@ -70,10 +70,21 @@ def get_vietnam_now() -> datetime:
     '''??? ?? ??'''
     return vietnam_timezone.get_vietnam_now()
 
-def get_vietnam_display_time(utc_timestamp: Optional[str] = None) -> str:
-    '''??? ??? ?? ???'''
-    return vietnam_timezone.get_display_timestamp(utc_timestamp)
+def get_vietnam_date():
+    '''??? ?? ??? ??'''
+    return vietnam_timezone.get_vietnam_now().date()
 
-def get_database_time() -> str:
-    '''?????? ??? UTC ??'''
-    return vietnam_timezone.get_database_timestamp()
+def get_vietnam_display_time(utc_timestamp: Optional[str] = None) -> datetime:
+    '''??? ??? ?? ??? (datetime ??? ??)'''
+    if utc_timestamp:
+        return vietnam_timezone.to_vietnam_time(utc_timestamp)
+    else:
+        return vietnam_timezone.get_vietnam_now()
+
+def get_database_time() -> datetime:
+    '''?????? ??? UTC ?? (datetime ??? ??)'''
+    return datetime.now(vietnam_timezone.utc_tz)
+
+def convert_utc_to_vietnam(utc_datetime: Union[str, datetime]) -> datetime:
+    '''UTC ??? ??? ???? ??'''
+    return vietnam_timezone.to_vietnam_time(utc_datetime)
