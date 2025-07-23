@@ -334,13 +334,20 @@ def get_inspector_performance_data_fallback():
     try:
         supabase = get_supabase_client()
         
-        # 1. 검사 데이터 조회
+        # 1. 검사 데이터 조회 (시간대 변환 적용)
         inspection_result = supabase.table('inspection_data').select('*').execute()
-        inspections = inspection_result.data if inspection_result.data else []
+        if inspection_result.data:
+            inspections = convert_supabase_data_timezone(inspection_result.data)
+        else:
+            inspections = []
         
-        # 2. 검사자 정보 조회
+        # 2. 검사자 정보 조회 (시간대 변환 적용)
         inspectors_result = supabase.table('inspectors').select('*').execute()
-        inspectors = {insp['id']: insp for insp in inspectors_result.data} if inspectors_result.data else {}
+        if inspectors_result.data:
+            inspectors_data = convert_supabase_data_timezone(inspectors_result.data)
+            inspectors = {insp['id']: insp for insp in inspectors_data}
+        else:
+            inspectors = {}
         
         if not inspections or not inspectors:
             return None

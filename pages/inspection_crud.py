@@ -208,7 +208,9 @@ def show_data_edit_form():
         response = supabase.table('inspection_data').select('*').execute()
         
         if response.data:
-            df = pd.DataFrame(response.data)
+            # 시간대 변환 적용
+            converted_data = convert_supabase_data_timezone(response.data)
+            df = pd.DataFrame(converted_data)
             
             if len(df) > 0:
                 # 수정할 레코드 선택
@@ -277,7 +279,9 @@ def show_data_delete_form():
         response = supabase.table('inspection_data').select('*').execute()
         
         if response.data:
-            df = pd.DataFrame(response.data)
+            # 시간대 변환 적용
+            converted_data = convert_supabase_data_timezone(response.data)
+            df = pd.DataFrame(converted_data)
             
             if len(df) > 0:
                 # 삭제할 레코드 선택
