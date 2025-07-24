@@ -9,7 +9,7 @@ from utils.inspector_utils import get_all_inspectors
 from pages.item_management import get_all_models
 from utils.supabase_client import get_supabase_client
 from utils.defect_utils import get_defect_type_names
-from utils.vietnam_timezone import get_database_time, get_vietnam_display_time, get_vietnam_now
+from utils.vietnam_timezone import get_database_time, get_database_time_iso, get_vietnam_display_time, get_vietnam_now
 from utils.data_converter import convert_supabase_data_timezone, convert_dataframe_timezone
 import random
 
@@ -279,7 +279,7 @@ def show_inspection_input_form():
                     "defect_quantity": total_defect_count,
                     "result": result,
                     "notes": notes if notes else None,
-                    "created_at": datetime.now(pytz.UTC).isoformat()  # UTC로 저장 (표준 방식)
+                    "created_at": get_database_time_iso()  # 베트남 시간대로 저장 (UTC+7)
                     # updated_at은 데이터베이스 기본값(now()) 사용
                 }
                 
@@ -299,7 +299,7 @@ def show_inspection_input_form():
                                 "defect_type": defect_type,  # 기존 테이블 구조에 맞춘 필드명
                                 "defect_count": count,
                                 "description": defect_description if defect_description else None,  # 기존 테이블 구조에 맞춘 필드명
-                                "created_at": datetime.now(pytz.UTC).isoformat()  # UTC로 저장 (표준 방식)
+                                "created_at": get_database_time_iso()  # 베트남 시간대로 저장 (UTC+7)
                             }
                             
                             defect_result = supabase.table('defects').insert(defect_record).execute()

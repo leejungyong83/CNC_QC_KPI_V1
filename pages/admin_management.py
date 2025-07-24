@@ -8,7 +8,7 @@ from utils.supabase_client import get_supabase_client
 # 베트남 시간대 유틸리티 import
 from utils.vietnam_timezone import (
     get_vietnam_now, get_vietnam_date, 
-    convert_utc_to_vietnam, get_database_time,
+    convert_utc_to_vietnam, get_database_time, get_database_time_iso,
     get_vietnam_display_time
 )
 from utils.data_converter import convert_supabase_data_timezone, convert_dataframe_timezone
@@ -293,7 +293,7 @@ def show_add_admin(supabase):
                         "is_active": is_active,
                         "notes": notes,
                         "password_hash": password_hash,  # password -> password_hash로 변경
-                        "created_at": datetime.now(pytz.UTC).isoformat()  # UTC로 저장 (표준 방식)
+                        "created_at": get_database_time_iso()  # 베트남 시간대로 저장 (UTC+7)
                         # updated_at은 데이터베이스 기본값 사용
                     }
                     
