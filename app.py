@@ -333,6 +333,9 @@ else:
     if st.sidebar.button("🔍 불량분석", key="defect_analysis", use_container_width=True):
         st.session_state.selected_menu = "불량 분석"
         st.rerun()
+    if st.sidebar.button("🏭 교대조분석", key="shift_analysis", use_container_width=True):
+        st.session_state.selected_menu = "교대조별 실적분석"
+        st.rerun()
     
     # 알림 시스템 (새로 추가)
     st.sidebar.markdown("### 🔔 알림")
@@ -398,6 +401,10 @@ else:
         
     elif menu == "불량 분석":
         show_defect_analysis(filter_params)
+        
+    elif menu == "교대조별 실적분석":
+        from pages.shift_reports import show_shift_reports
+        show_shift_reports()
         
     elif menu == "생산모델 관리":
         show_production_model_management()

@@ -11,6 +11,7 @@ from utils.supabase_client import get_supabase_client
 from utils.defect_utils import get_defect_type_names
 from utils.vietnam_timezone import get_database_time, get_database_time_iso, get_vietnam_display_time, get_vietnam_now
 from utils.data_converter import convert_supabase_data_timezone, convert_dataframe_timezone
+from utils.shift_manager import get_current_shift, get_shift_for_time, shift_manager
 import random
 
 def show_inspection_input():
@@ -33,8 +34,21 @@ def show_inspection_input():
         show_inspection_delete_form()
 
 def show_inspection_input_form():
-    """검사실적 입력 폼 - 사용자 요청사항에 정확히 맞춤"""
+    """검사실적 입력 폼 - 교대조 자동 판별 기능 추가"""
     st.header("검사실적 데이터 입력")
+    
+    # 🕐 현재 시간 및 교대조 정보 표시
+    current_time = get_vietnam_now()
+    current_shift = get_current_shift()
+    
+    # 시간 및 교대조 정보 표시 박스
+    st.info(f"""
+    **🕐 현재 시간**: {current_time.strftime('%Y-%m-%d %H:%M:%S')} (베트남 시간)
+    
+    **🏭 현재 교대조**: {current_shift['full_shift_name']}
+    - 📅 작업일: {current_shift['work_date']}
+    - 🏢 교대조: {current_shift['shift_name']}
+    """)
     
     # Supabase 연결
     try:
@@ -156,11 +170,13 @@ def show_inspection_input_form():
         col1, col2 = st.columns(2)
         
         with col1:
-            # 1. 검사일자
-            inspection_date = st.date_input(
-                "📅 검사일자", 
-                value=date.today(),
-                help="검사를 실시한 날짜를 선택하세요"
+            # 1. 검사일자 (자동 계산된 작업일 표시)
+            work_date = current_shift['work_date']
+            st.date_input(
+                "📅 작업일 (자동 계산)", 
+                value=work_date,
+                disabled=True,
+                help=f"현재 시간({current_time.strftime('%H:%M')})을 기준으로 자동 계산된 작업일입니다"
             )
             
             # 2. 검사자 이름 (선택)
@@ -268,9 +284,13 @@ def show_inspection_input_form():
                 # 검사자 ID 가져오기 (UUID)
                 inspector_uuid = selected_inspector['id'] if selected_inspector else None
                 
+                # 교대조 정보 자동 판별
+                save_time = get_vietnam_now()
+                shift_info = get_shift_for_time(save_time)
+                
                 # 검사 데이터 저장 (베트남 시간대로)
                 inspection_data = {
-                    "inspection_date": inspection_date.isoformat(),
+                    "inspection_date": shift_info['work_date'].strftime('%Y-%m-%d'),  # 작업일 기준
                     "inspector_id": inspector_uuid,
                     "model_id": model_id,
                     "process": selected_process,
@@ -278,6 +298,7 @@ def show_inspection_input_form():
                     "total_inspected": total_inspected,
                     "defect_quantity": total_defect_count,
                     "result": result,
+                    "shift": shift_info['shift_name'],  # 교대조 정보 자동 추가
                     "notes": notes if notes else None,
                     "created_at": get_database_time_iso()  # 베트남 시간대로 저장 (UTC+7)
                     # updated_at은 데이터베이스 기본값(now()) 사용
@@ -315,7 +336,9 @@ def show_inspection_input_form():
                     # 저장된 데이터 요약 표시
                     with st.expander("📊 저장된 데이터 요약"):
                         summary_data = {
-                            "검사일자": inspection_date.strftime("%Y-%m-%d"),
+                            "작업일": shift_info['work_date'].strftime("%Y-%m-%d"),
+                            "교대조": shift_info['shift_name'],
+                            "입력시간": save_time.strftime("%Y-%m-%d %H:%M:%S"),
                             "검사자": selected_inspector_name,
                             "검사자 ID": inspector_id,
                             "검사모델": selected_model_name,

@@ -1,209 +1,101 @@
 ﻿import streamlit as st
 import pandas as pd
 import plotly.express as px
-from utils.defect_utils import get_defect_type_names
+import plotly.graph_objects as go
+from datetime import datetime, timedelta, date
+import numpy as np
 from utils.supabase_client import get_supabase_client
-from utils.vietnam_timezone import get_vietnam_now, get_vietnam_display_time
+from utils.vietnam_timezone import get_vietnam_now, get_vietnam_display_time, get_vietnam_date
 from utils.data_converter import convert_supabase_data_timezone, convert_dataframe_timezone
-import random
+from utils.defect_utils import get_defect_type_names
+from utils.shift_manager import get_current_shift, get_shift_for_time
+from utils.shift_analytics import shift_analytics, get_today_defect_rate
+from utils.shift_ui_components import (
+    show_current_shift_banner, 
+    show_shift_status_indicator,
+    show_shift_comparison_cards,
+    show_shift_timeline
+)
 
 def show_dashboard():
-    """KPI 대시보드 화면 표시"""
-    st.header("📊 KPI 대시보드")
+    """대시보드 메인 페이지"""
+    st.title("📊 CNC QC KPI 대시보드")
     
-    # KPI 데이터 계산 (개선된 버전)
-    kpi_data = calculate_kpi_data()
+    # 현재 교대조 정보 배너
+    show_current_shift_banner()
     
-    # 데이터 상태에 따른 처리
-    data_status = kpi_data.get('data_status', 'unknown')
+    # 교대조 타임라인
+    with st.expander("🕐 오늘 교대조 타임라인", expanded=False):
+        show_shift_timeline()
     
-    if data_status == 'no_data':
-        st.warning("⚠️ 최근 30일간 검사 데이터가 없습니다.")
-        st.info("💡 '📝 검사데이터입력' 메뉴에서 검사 실적을 추가하거나, Supabase에서 샘플 데이터를 생성하세요.")
+    # KPI 메트릭 표시
+    try:
+        # 교대조 기준 오늘 KPI 계산
+        today_kpi = get_today_defect_rate()
         
-        # 기본 KPI 카드 (0 값으로 표시)
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.metric(label="총 검사 건수 (30일)", value="0건", delta="데이터 없음")
-        with col2:
-            st.metric(label="불량률", value="0.000%", delta="데이터 없음")
-        with col3:
-            st.metric(label="평균 검사수량/건", value="0개", delta="데이터 없음")
-        with col4:
-            st.metric(label="검사 효율성", value="0.0%", delta="데이터 없음")
+        if today_kpi['data_status'] == 'success':
+            # KPI 카드 표시
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric(
+                    label="📊 오늘 불량률",
+                    value=f"{today_kpi['defect_rate']:.3f}%",
+                    delta=f"목표: 0.02%" if today_kpi['defect_rate'] <= 0.02 else f"+{today_kpi['defect_rate']-0.02:.3f}%",
+                    delta_color="normal" if today_kpi['defect_rate'] <= 0.02 else "inverse"
+                )
+            
+            with col2:
+                st.metric(
+                    label="🎯 검사 효율성",
+                    value=f"{today_kpi['inspection_efficiency']:.1f}%",
+                    delta=f"목표: 95%" if today_kpi['inspection_efficiency'] >= 95 else f"{today_kpi['inspection_efficiency']-95:.1f}%",
+                    delta_color="normal" if today_kpi['inspection_efficiency'] >= 95 else "inverse"
+                )
+            
+            with col3:
+                st.metric(
+                    label="📝 총 검사건수",
+                    value=f"{today_kpi['total_inspections']}건",
+                    delta=f"검사수량: {today_kpi['total_inspected_qty']}개"
+                )
+            
+            with col4:
+                st.metric(
+                    label="❌ 불량수량",
+                    value=f"{today_kpi['total_defect_qty']}개",
+                    delta=f"작업일: {today_kpi['work_date']}"
+                )
+            
+            # 시간 범위 정보
+            st.caption(f"📅 집계 기준: {today_kpi['period']} (하루 = 08:00~다음날 07:59)")
+            
+        else:
+            st.warning("⚠️ 오늘 검사 데이터가 없습니다.")
+            
+    except Exception as e:
+        st.error(f"❌ KPI 데이터 로딩 오류: {str(e)}")
+        # 폴백으로 기존 KPI 표시
+        show_fallback_kpi()
     
-    elif data_status in ['table_missing', 'connection_error', 'unknown_error']:
-        st.error(f"❌ 데이터 조회 실패: {kpi_data.get('error_message', '알 수 없는 오류')}")
-        
-        with st.expander("🔧 문제 해결 방법"):
-            if data_status == 'table_missing':
-                st.write("**테이블이 존재하지 않습니다.**")
-                st.write("1. Supabase SQL Editor에서 `database_schema_unified.sql` 실행")
-                st.write("2. 'Supabase 설정' 메뉴에서 데이터베이스 연결 확인")
-            elif data_status == 'connection_error':
-                st.write("**데이터베이스 연결 문제입니다.**")
-                st.write("1. 네트워크 연결 상태 확인")
-                st.write("2. Supabase 프로젝트 상태 확인")
-                st.write("3. `.streamlit/secrets.toml` 파일의 연결 정보 확인")
-            else:
-                st.write("**일반적인 해결 방법:**")
-                st.write("1. 'Supabase 설정' 메뉴에서 연결 테스트")
-                st.write("2. 브라우저 새로고침")
-                st.write("3. 잠시 후 다시 시도")
-        
-        # 기본 KPI 카드 (에러 상태 표시)
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.metric(label="총 검사 건수 (30일)", value="--", delta="연결 오류")
-        with col2:
-            st.metric(label="불량률", value="--", delta="연결 오류")
-        with col3:
-            st.metric(label="평균 검사수량/건", value="--", delta="연결 오류")
-        with col4:
-            st.metric(label="검사 효율성", value="--", delta="연결 오류")
-    
-    else:  # data_status == 'success'
-        # 정상 데이터 표시
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            total_inspections = kpi_data['total_inspections']
-            avg_per_day = total_inspections / 30 if total_inspections > 0 else 0
-            st.metric(
-                label="총 검사 건수 (30일)", 
-                value=f"{total_inspections:,}건",
-                delta=f"{avg_per_day:.1f}건/일 평균"
-            )
-        
-        with col2:
-            defect_rate = kpi_data['defect_rate']
-            target_defect_rate = 2.0  # 목표 불량률 2.0%
-            delta_color = "normal" if defect_rate <= target_defect_rate else "inverse"
-            st.metric(
-                label="불량률", 
-                value=f"{defect_rate:.3f}%",
-                delta=f"목표 {target_defect_rate}% {'달성' if defect_rate <= target_defect_rate else '미달'}",
-                delta_color=delta_color
-            )
-        
-        with col3:
-            total_qty = kpi_data['total_inspected_qty']
-            avg_qty_per_inspection = total_qty / total_inspections if total_inspections > 0 else 0
-            st.metric(
-                label="평균 검사수량/건", 
-                value=f"{avg_qty_per_inspection:.0f}개",
-                delta=f"총 {total_qty:,}개 검사"
-            )
-        
-        with col4:
-            efficiency = kpi_data['inspection_efficiency']
-            target_efficiency = 95.0  # 목표 검사효율 95%
-            delta_color = "normal" if efficiency >= target_efficiency else "inverse"
-            st.metric(
-                label="검사 효율성 (건수기준)", 
-                value=f"{efficiency:.1f}%",
-                delta=f"목표 {target_efficiency}% {'달성' if efficiency >= target_efficiency else '미달'}",
-                delta_color=delta_color
-            )
-        
-        # 추가 KPI 정보 (수량 기준)
-        if kpi_data.get('quantity_pass_rate', 0) > 0:
-            st.info(f"📊 **수량 기준 합격률**: {kpi_data['quantity_pass_rate']:.1f}% (합격: {kpi_data['total_pass_qty']:,}개 / 총검사: {total_qty:,}개)")
+    # 추가 KPI 정보 (수량 기준)
+    if today_kpi.get('data_status') == 'success' and today_kpi.get('total_inspected_qty', 0) > 0:
+        total_qty = today_kpi['total_inspected_qty']
+        pass_qty = total_qty - today_kpi['total_defect_qty']
+        quantity_pass_rate = (pass_qty / total_qty * 100) if total_qty > 0 else 0
+        st.info(f"📊 **수량 기준 합격률**: {quantity_pass_rate:.1f}% (합격: {pass_qty:,}개 / 총검사: {total_qty:,}개)")
     
     # BEST/WORST 검사자 섹션 추가
     st.markdown("---")
     show_inspector_performance()
     
-    # 기간 선택기
-    col1, col2 = st.columns(2)
-    with col1:
-        period = st.selectbox(
-            "기간 선택",
-            ["일별", "주별", "월별"]
-        )
-    with col2:
-        date_range = st.date_input(
-            "날짜 범위",
-            [pd.Timestamp.now() - pd.Timedelta(days=30), pd.Timestamp.now()]
-        )
-    
-    # 탭 구성
-    tab1, tab2, tab3, tab4 = st.tabs(["검사 현황", "불량 현황", "설비별 현황", "모델별 현황"])
-    
-    with tab1:
-        st.subheader("검사 건수 추이")
-        # 검사 건수 데이터 (예시)
-        chart_data = pd.DataFrame({
-            "날짜": pd.date_range(start="2023-01-01", periods=30),
-            "검사 건수": [40, 42, 45, 47, 38, 39, 41, 43, 46, 48, 
-                      50, 49, 47, 45, 43, 44, 45, 47, 49, 51,
-                      50, 48, 46, 45, 44, 46, 48, 49, 50, 52]
-        })
-        fig = px.line(chart_data, x="날짜", y="검사 건수", title="일별 검사 건수")
-        st.plotly_chart(fig, use_container_width=True)
-        
-    with tab2:
-        st.subheader("불량률 추이")
-        # 불량률 데이터 (예시)
-        chart_data = pd.DataFrame({
-            "날짜": pd.date_range(start="2023-01-01", periods=30),
-            "불량률": [4.0, 3.9, 4.2, 3.8, 3.7, 3.6, 3.3, 3.5, 3.6, 3.4, 
-                     3.2, 3.5, 3.6, 3.7, 3.8, 3.6, 3.5, 3.4, 3.3, 3.4,
-                     3.5, 3.6, 3.5, 3.4, 3.3, 3.2, 3.3, 3.4, 3.5, 3.4]
-        })
-        fig = px.line(chart_data, x="날짜", y="불량률", title="일별 불량률")
-        st.plotly_chart(fig, use_container_width=True)
-        
-        st.subheader("주요 불량 유형")
-        # 불량 유형 데이터베이스에서 가져오기
-        defect_types = get_defect_type_names()
-        
-        # 각 불량 유형별 임의의 발생 건수 생성 (데모용)
-        defect_counts = [random.randint(3, 15) for _ in range(len(defect_types))]
-        
-        # DataFrame 생성
-        defect_data = pd.DataFrame({
-            "불량 유형": defect_types,
-            "발생 건수": defect_counts
-        })
-        
-        # 발생 건수 기준으로 내림차순 정렬
-        defect_data = defect_data.sort_values(by="발생 건수", ascending=False).reset_index(drop=True)
-        
-        fig = px.bar(defect_data, x="불량 유형", y="발생 건수", title="불량 유형별 발생 건수")
-        st.plotly_chart(fig, use_container_width=True)
-        
-    with tab3:
-        st.subheader("설비별 검사 현황")
-        # 설비별 데이터 (예시)
-        equipment_data = pd.DataFrame({
-            "설비": ["설비1", "설비2", "설비3", "설비4", "설비5"],
-            "검사 건수": [45, 38, 42, 36, 30],
-            "불량 건수": [2, 3, 1, 1, 2],
-            "불량률": [4.4, 7.9, 2.4, 2.8, 6.7]
-        })
-        st.dataframe(equipment_data, use_container_width=True)
-        
-        fig = px.bar(equipment_data, x="설비", y="불량률", title="설비별 불량률")
-        st.plotly_chart(fig, use_container_width=True)
-    
-    with tab4:
-        st.subheader("모델별 검사 현황")
-        # 모델별 데이터 (예시)
-        model_data = pd.DataFrame({
-            "모델": ["모델A", "모델B", "모델C", "모델D", "모델E"],
-            "검사 건수": [50, 42, 38, 25, 20],
-            "불량 건수": [3, 2, 3, 1, 1],
-            "불량률": [6.0, 4.8, 7.9, 4.0, 5.0]
-        })
-        st.dataframe(model_data, use_container_width=True)
-        
-        fig = px.bar(model_data, x="모델", y="불량률", title="모델별 불량률")
-        st.plotly_chart(fig, use_container_width=True)
-    
-    # KPI 알림 섹션 추가
+    # 교대조별 성과 비교 섹션 (개선된 UI)
     st.markdown("---")
-    show_kpi_alerts()
+    show_enhanced_shift_comparison()
+    
+    # 기간 선택기 및 차트들
+    st.markdown("---")
+    show_dashboard_charts()
 
 def show_inspector_performance():
     """BEST/WORST 검사자 성과 표시"""
@@ -318,6 +210,360 @@ def show_kpi_alerts():
                 
     except Exception as e:
         st.error(f"KPI 데이터 계산 중 오류: {str(e)}")
+
+def show_enhanced_shift_comparison():
+    """개선된 교대조별 성과 비교 표시"""
+    st.subheader("🏭 오늘 교대조별 성과 비교")
+    
+    try:
+        # 오늘 교대조별 데이터 조회
+        comparison = shift_analytics.compare_shifts_performance()
+        
+        # 교대조 상태 표시기
+        show_shift_status_indicator(compact=True)
+        
+        # 교대조 비교 카드
+        show_shift_comparison_cards(
+            comparison['day_shift'], 
+            comparison['night_shift']
+        )
+        
+        # 분석 결과 표시
+        if 'analysis' in comparison:
+            analysis = comparison['analysis']
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                better_defect = "주간조" if analysis['better_defect_rate'] == 'DAY' else "야간조"
+                better_emoji = "☀️" if analysis['better_defect_rate'] == 'DAY' else "🌙"
+                st.success(f"🏆 **불량률 우수**: {better_emoji} {better_defect}")
+                st.caption(f"차이: {analysis['defect_rate_diff']:.3f}%p")
+            
+            with col2:
+                better_efficiency = "주간조" if analysis['better_efficiency'] == 'DAY' else "야간조"
+                better_emoji = "☀️" if analysis['better_efficiency'] == 'DAY' else "🌙"
+                st.success(f"🏆 **효율성 우수**: {better_emoji} {better_efficiency}")
+                st.caption(f"차이: {analysis['efficiency_diff']:.1f}%p")
+                
+    except Exception as e:
+        st.error(f"교대조 비교 데이터 로딩 오류: {str(e)}")
+
+def show_fallback_kpi():
+    """폴백 KPI 표시 (기존 방식)"""
+    try:
+        # 기존 KPI 계산 방식 사용
+        kpi_data = calculate_kpi_data()
+        
+        if kpi_data.get('data_status') == 'success':
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric(
+                    label="📈 불량률", 
+                    value=f"{kpi_data['defect_rate']:.3f}%",
+                    delta=f"목표: 0.02%"
+                )
+            
+            with col2:
+                st.metric(
+                    label="🎯 검사 효율성", 
+                    value=f"{kpi_data['inspection_efficiency']:.1f}%",
+                    delta=f"목표: 95%"
+                )
+            
+            with col3:
+                st.metric(
+                    label="📊 총 검사건수", 
+                    value=f"{kpi_data['total_inspections']}건"
+                )
+            
+            with col4:
+                st.metric(
+                    label="📦 총 검사수량", 
+                    value=f"{kpi_data['total_inspected_qty']:,}개"
+                )
+            
+            st.caption("📅 기준: 최근 30일 데이터")
+            
+    except Exception as e:
+        st.error(f"폴백 KPI 로딩 오류: {str(e)}")
+
+def show_dashboard_charts():
+    """대시보드 차트 표시 - 교대조별 분석 포함"""
+    # 기간 선택기
+    col1, col2 = st.columns(2)
+    with col1:
+        period = st.selectbox(
+            "기간 선택",
+            ["일별", "주별", "월별"]
+        )
+    with col2:
+        date_range = st.date_input(
+            "날짜 범위",
+            [pd.Timestamp.now() - pd.Timedelta(days=30), pd.Timestamp.now()]
+        )
+    
+    # 탭 구성 (교대조 분석 탭 추가)
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "📊 검사 현황", 
+        "❌ 불량 현황", 
+        "🏭 교대조 KPI",
+        "🔧 설비별 현황", 
+        "📦 모델별 현황"
+    ])
+    
+    with tab1:
+        st.subheader("검사 건수 추이")
+        # 검사 건수 데이터 (예시)
+        chart_data = pd.DataFrame({
+            "날짜": pd.date_range(start="2023-01-01", periods=30),
+            "검사 건수": [40, 42, 45, 47, 38, 39, 41, 43, 46, 48, 
+                      50, 49, 47, 45, 43, 44, 45, 47, 49, 51,
+                      50, 48, 46, 45, 44, 46, 48, 49, 50, 52]
+        })
+        fig = px.line(chart_data, x="날짜", y="검사 건수", title="일별 검사 건수")
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # 불량률 추이
+        defect_rate_data = pd.DataFrame({
+            "날짜": pd.date_range(start="2023-01-01", periods=30),
+            "불량률": np.random.normal(2.5, 0.8, 30)  # 평균 2.5%, 표준편차 0.8%
+        })
+        fig_defect = px.line(defect_rate_data, x="날짜", y="불량률", title="일별 불량률 추이")
+        fig_defect.add_hline(y=0.02, line_dash="dash", line_color="red", annotation_text="목표 불량률 0.02%")
+        st.plotly_chart(fig_defect, use_container_width=True)
+        
+    with tab2:
+        st.subheader("불량 현황")
+        
+        # 불량 유형별 분포
+        defect_types = ["치수 불량", "외관 불량", "기능 불량", "표면 불량"]
+        defect_counts = [25, 15, 8, 12]
+        
+        fig_pie = px.pie(
+            values=defect_counts, 
+            names=defect_types, 
+            title="불량 유형별 분포"
+        )
+        st.plotly_chart(fig_pie, use_container_width=True)
+        
+        # 불량 발생 추이
+        st.subheader("월별 불량 발생 추이")
+        monthly_data = pd.DataFrame({
+            "월": ["1월", "2월", "3월", "4월", "5월", "6월"],
+            "불량 건수": [45, 38, 52, 41, 33, 47]
+        })
+        fig_bar = px.bar(monthly_data, x="월", y="불량 건수", title="월별 불량 발생 건수")
+        st.plotly_chart(fig_bar, use_container_width=True)
+    
+    with tab3:
+        show_shift_kpi_analysis()
+        
+    with tab4:
+        st.subheader("설비별 현황")
+        st.info("설비별 데이터 기능은 추후 업데이트 예정입니다.")
+        
+    with tab5:
+        st.subheader("모델별 현황")
+        st.info("모델별 상세 분석 기능은 추후 업데이트 예정입니다.")
+
+def show_shift_kpi_analysis():
+    """교대조별 KPI 상세 분석"""
+    st.subheader("🏭 교대조별 KPI 분석")
+    
+    # 분석 기간 선택
+    col1, col2 = st.columns(2)
+    with col1:
+        analysis_days = st.slider("분석 기간 (일)", min_value=1, max_value=30, value=7)
+    with col2:
+        end_date = st.date_input("종료일", value=date.today())
+    
+    try:
+        # 주간 교대조 요약 데이터
+        weekly_summary = shift_analytics.get_weekly_shift_summary(end_date, analysis_days)
+        
+        # 기간별 KPI 요약
+        st.subheader("📊 기간별 KPI 요약")
+        
+        day_totals = weekly_summary['week_totals']['day_shift']
+        night_totals = weekly_summary['week_totals']['night_shift']
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric(
+                "주간조 평균 불량률",
+                f"{day_totals['avg_defect_rate']:.3f}%",
+                delta=f"목표: 0.02%"
+            )
+        
+        with col2:
+            st.metric(
+                "야간조 평균 불량률", 
+                f"{night_totals['avg_defect_rate']:.3f}%",
+                delta=f"목표: 0.02%"
+            )
+        
+        with col3:
+            total_inspections = day_totals['inspections'] + night_totals['inspections']
+            day_ratio = (day_totals['inspections'] / total_inspections * 100) if total_inspections > 0 else 0
+            st.metric(
+                "주간조 검사 비율",
+                f"{day_ratio:.1f}%",
+                delta=f"{day_totals['inspections']}건"
+            )
+        
+        with col4:
+            night_ratio = (night_totals['inspections'] / total_inspections * 100) if total_inspections > 0 else 0
+            st.metric(
+                "야간조 검사 비율",
+                f"{night_ratio:.1f}%", 
+                delta=f"{night_totals['inspections']}건"
+            )
+        
+        # 교대조별 성과 비교 차트
+        if weekly_summary['daily_summaries']:
+            st.subheader("📈 교대조별 성과 트렌드")
+            
+            # 데이터 준비
+            trend_data = []
+            for daily in weekly_summary['daily_summaries']:
+                date_str = daily['date'].strftime('%m/%d')
+                
+                if daily['day_shift']['data_status'] == 'success':
+                    trend_data.append({
+                        '날짜': date_str,
+                        '교대조': '주간조',
+                        '불량률': daily['day_shift']['defect_rate'],
+                        '검사건수': daily['day_shift']['total_inspections'],
+                        '효율성': daily['day_shift']['inspection_efficiency']
+                    })
+                
+                if daily['night_shift']['data_status'] == 'success':
+                    trend_data.append({
+                        '날짜': date_str,
+                        '교대조': '야간조',
+                        '불량률': daily['night_shift']['defect_rate'],
+                        '검사건수': daily['night_shift']['total_inspections'],
+                        '효율성': daily['night_shift']['inspection_efficiency']
+                    })
+            
+            if trend_data:
+                trend_df = pd.DataFrame(trend_data)
+                
+                # 차트 배치
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    # 불량률 비교 차트
+                    fig_defect = px.line(
+                        trend_df, 
+                        x='날짜', 
+                        y='불량률',
+                        color='교대조',
+                        title="교대조별 불량률 추이 (%)",
+                        markers=True,
+                        color_discrete_map={'주간조': '#FFD700', '야간조': '#4169E1'}
+                    )
+                    fig_defect.add_hline(y=0.02, line_dash="dash", line_color="red", annotation_text="목표: 0.02%")
+                    st.plotly_chart(fig_defect, use_container_width=True)
+                
+                with col2:
+                    # 검사건수 비교 차트
+                    fig_inspections = px.bar(
+                        trend_df, 
+                        x='날짜', 
+                        y='검사건수',
+                        color='교대조',
+                        title="교대조별 검사건수 추이",
+                        barmode='group',
+                        color_discrete_map={'주간조': '#FFD700', '야간조': '#4169E1'}
+                    )
+                    st.plotly_chart(fig_inspections, use_container_width=True)
+                
+                # 효율성 비교
+                fig_efficiency = px.line(
+                    trend_df, 
+                    x='날짜', 
+                    y='효율성',
+                    color='교대조',
+                    title="교대조별 검사 효율성 추이 (%)",
+                    markers=True,
+                    color_discrete_map={'주간조': '#FFD700', '야간조': '#4169E1'}
+                )
+                fig_efficiency.add_hline(y=95, line_dash="dash", line_color="green", annotation_text="목표: 95%")
+                st.plotly_chart(fig_efficiency, use_container_width=True)
+        
+        # 교대조별 상세 통계
+        st.subheader("📋 교대조별 상세 통계")
+        
+        # 통계 테이블 생성
+        stats_data = {
+            '지표': [
+                '총 검사건수',
+                '총 검사수량', 
+                '총 불량수량',
+                '평균 불량률 (%)',
+                '불량률 표준편차',
+                '최고 불량률 (%)',
+                '최저 불량률 (%)'
+            ],
+            '주간조': [
+                f"{day_totals['inspections']}건",
+                f"{day_totals['inspected_qty']:,}개",
+                f"{day_totals['defect_qty']}개", 
+                f"{day_totals['avg_defect_rate']:.3f}%",
+                "계산 중...",  # 실제로는 표준편차 계산 필요
+                "계산 중...",  # 실제로는 최고값 계산 필요
+                "계산 중..."   # 실제로는 최저값 계산 필요
+            ],
+            '야간조': [
+                f"{night_totals['inspections']}건",
+                f"{night_totals['inspected_qty']:,}개",
+                f"{night_totals['defect_qty']}개",
+                f"{night_totals['avg_defect_rate']:.3f}%",
+                "계산 중...",
+                "계산 중...",
+                "계산 중..."
+            ]
+        }
+        
+        stats_df = pd.DataFrame(stats_data)
+        st.dataframe(stats_df, use_container_width=True)
+        
+        # KPI 목표 달성률
+        st.subheader("🎯 KPI 목표 달성률")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.write("**주간조 목표 달성률**")
+            day_defect_achievement = (0.02 / day_totals['avg_defect_rate'] * 100) if day_totals['avg_defect_rate'] > 0 else 100
+            day_defect_achievement = min(100, day_defect_achievement)
+            
+            st.progress(day_defect_achievement / 100, text=f"불량률 목표: {day_defect_achievement:.1f}%")
+            
+            if day_totals['avg_defect_rate'] <= 0.02:
+                st.success("✅ 불량률 목표 달성!")
+            else:
+                st.warning(f"⚠️ 목표 대비 {day_totals['avg_defect_rate'] - 0.02:.3f}%p 초과")
+        
+        with col2:
+            st.write("**야간조 목표 달성률**")
+            night_defect_achievement = (0.02 / night_totals['avg_defect_rate'] * 100) if night_totals['avg_defect_rate'] > 0 else 100
+            night_defect_achievement = min(100, night_defect_achievement)
+            
+            st.progress(night_defect_achievement / 100, text=f"불량률 목표: {night_defect_achievement:.1f}%")
+            
+            if night_totals['avg_defect_rate'] <= 0.02:
+                st.success("✅ 불량률 목표 달성!")
+            else:
+                st.warning(f"⚠️ 목표 대비 {night_totals['avg_defect_rate'] - 0.02:.3f}%p 초과")
+    
+    except Exception as e:
+        st.error(f"교대조 KPI 분석 오류: {str(e)}")
+        st.info("교대조별 데이터가 충분하지 않습니다. 검사 데이터를 더 입력해주세요.")
 
 def get_inspector_performance_data():
     """검사자별 성과 데이터 조회 - 성능 최적화된 버전"""
