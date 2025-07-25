@@ -413,7 +413,7 @@ def show_today_report_mobile():
     
     try:
         supabase = get_supabase_client()
-        today = datetime.now().date().strftime('%Y-%m-%d')
+        today = get_vietnam_now().strftime('%Y-%m-%d')  # 베트남 오늘 날짜
         
         result = supabase.table('inspection_data') \
             .select('*, inspectors(name), production_models(model_name)') \

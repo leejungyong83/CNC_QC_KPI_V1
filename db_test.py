@@ -3,6 +3,7 @@ import uuid
 from utils.supabase_client import get_supabase_client
 from datetime import datetime
 import json
+from utils.vietnam_timezone import get_database_time_iso, get_vietnam_now
 
 print("=== Supabase 데이터베이스 연결 및 CRUD 테스트 ===")
 
@@ -42,7 +43,7 @@ try:
     # 3. 검사 데이터 추가 테스트
     print("\n4. 검사 데이터 추가 테스트...")
     inspection_data = {
-        "inspection_date": datetime.now().strftime("%Y-%m-%d"),
+        "inspection_date": get_vietnam_now().strftime("%Y-%m-%d"),  # 베트남 날짜 문자열
         "inspector_id": inspector_id,
         "model_id": model_id,
         "result": "합격",
@@ -61,7 +62,8 @@ try:
         "inspection_id": inspection_id,
         "defect_type": "치수 불량",
         "defect_count": 5,
-        "description": "테스트 불량 데이터"
+        "description": "테스트 불량 데이터",
+        "created_at": get_database_time_iso()  # 베트남 시간대로 저장 (UTC+7)
     }
     
     defect_result = supabase.table('defects').insert(defect_data).execute()

@@ -7,7 +7,7 @@ import uuid
 from pages.inspector_management import get_all_inspectors
 from pages.item_management import get_all_models
 from utils.supabase_client import get_supabase_client
-from utils.vietnam_timezone import get_database_time, get_vietnam_now
+from utils.vietnam_timezone import get_database_time, get_vietnam_now, get_vietnam_display_time
 from utils.data_converter import convert_supabase_data_timezone, convert_dataframe_timezone
 from utils.defect_utils import get_defect_type_names
 import random
@@ -366,7 +366,7 @@ def generate_sample_inspection_data():
             "계획 수량": planned_qty,
             "총 검사 수량": total_inspected,
             "불량 수량": defect_qty,
-            "저장일시": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "저장일시": get_vietnam_display_time()  # 베트남 시간 표시
         })
     
     return data 

@@ -386,7 +386,7 @@ def send_test_email(test_email: str):
                 </p>
             </body>
             </html>
-            """.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            """.format(get_vietnam_display_time())
             
             success = email_sender.send_report(
                 recipient_email=test_email,
@@ -644,7 +644,7 @@ def save_email_history(email_list: List[str], subject: str, success_count: int, 
         st.session_state.email_history = []
     
     history_entry = {
-        'timestamp': datetime.now(),
+        'timestamp': get_vietnam_now(),
         'type': 'manual',
         'recipients': email_list,
         'subject': subject,
@@ -666,7 +666,7 @@ def save_schedule_history(report_type: str, recipients: List[str], success: bool
         st.session_state.schedule_history = []
     
     history_entry = {
-        'timestamp': datetime.now(),
+        'timestamp': get_vietnam_now(),
         'report_type': report_type,
         'recipients_count': len(recipients),
         'success': success

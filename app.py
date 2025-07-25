@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import io
 import re
+from utils.vietnam_timezone import get_vietnam_now
 
 # UI 컴포넌트 import
 try:
@@ -374,7 +375,7 @@ else:
     menu = st.session_state.selected_menu
     
     # 공통 필터 파라미터 설정 (리포트용)
-    today = datetime.now().date()
+    today = get_vietnam_now().date()  # 베트남 시간 기준 오늘
     filter_params = {
         'start_date': today - timedelta(days=30),
         'end_date': today,

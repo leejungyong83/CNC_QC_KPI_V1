@@ -12,6 +12,7 @@ import base64
 from PIL import Image
 import uuid
 from utils.supabase_client import get_supabase_client
+from utils.vietnam_timezone import get_vietnam_display_time
 
 # 베트남 시간대 유틸리티 import
 from utils.vietnam_timezone import (
@@ -341,7 +342,7 @@ def show_photo_management_tab(file_manager):
     # 검사 ID 입력 (테스트용)
     test_inspection_id = st.text_input(
         "검사 ID (테스트용)",
-        value="TEST_" + datetime.now().strftime("%Y%m%d_%H%M%S"),
+        value="TEST_" + get_vietnam_display_time().replace(' ', '_').replace(':', ''),
         help="실제 검사 ID를 입력하거나 테스트용 ID를 사용하세요"
     )
     

@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta, date
 import numpy as np
 from utils.supabase_client import get_supabase_client
-from utils.vietnam_timezone import get_vietnam_now, get_vietnam_display_time
+from utils.vietnam_timezone import get_vietnam_now, get_vietnam_display_time, get_vietnam_date
 from utils.data_converter import convert_supabase_data_timezone, convert_dataframe_timezone
 from utils.defect_utils import get_defect_type_names
 
@@ -20,7 +20,7 @@ def show_reports():
     # 공통으로 사용할 날짜 선택 및 데이터
     with st.sidebar:
         st.subheader("📋 리포트 설정")
-        today = datetime.now().date()
+        today = get_vietnam_now().date()  # 베트남 시간 기준 오늘 날짜
         
         # 날짜 범위 선택
         col1, col2 = st.columns(2)
