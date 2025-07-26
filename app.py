@@ -7,6 +7,9 @@ import io
 import re
 from utils.vietnam_timezone import get_vietnam_now
 
+# 교대조 시스템 버전 - v2.0.1 (TypeError 완전 해결)
+__version__ = "2.0.1"
+
 # UI 컴포넌트 import
 try:
     from utils.ui_components import apply_global_styles, std_components
@@ -393,7 +396,7 @@ else:
     }
     
     if menu == "종합 대시보드":
-        show_dashboard(filter_params)
+        show_dashboard()
         
     elif menu == "일별 분석":
         show_daily_report(filter_params)
