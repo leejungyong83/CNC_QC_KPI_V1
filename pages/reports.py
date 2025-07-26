@@ -71,7 +71,7 @@ def show_reports():
         }
         
         if st.session_state.report_type == "dashboard":
-            show_dashboard(filter_params)
+            show_dashboard_report(filter_params)
         elif st.session_state.report_type == "daily":
             show_daily_report(filter_params)
         elif st.session_state.report_type == "weekly":
@@ -202,8 +202,8 @@ def get_inspection_data(filter_params):
         st.error(f"데이터 조회 중 오류가 발생했습니다: {str(e)}")
         return pd.DataFrame()
 
-def show_dashboard(filter_params):
-    """종합 대시보드를 표시합니다."""
+def show_dashboard_report(filter_params):
+    """종합 대시보드 리포트를 표시합니다."""
     st.subheader("📈 종합 대시보드")
     
     # 데이터 조회
