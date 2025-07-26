@@ -35,9 +35,9 @@ def show_dashboard():
         
         if today_kpi['data_status'] == 'success':
             # KPI 카드 표시
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
                 st.metric(
                     label="📊 오늘 불량률",
                     value=f"{today_kpi['defect_rate']:.3f}%",
@@ -45,7 +45,7 @@ def show_dashboard():
                     delta_color="normal" if today_kpi['defect_rate'] <= 0.02 else "inverse"
                 )
             
-            with col2:
+    with col2:
                 st.metric(
                     label="🎯 검사 효율성",
                     value=f"{today_kpi['inspection_efficiency']:.1f}%",
@@ -53,14 +53,14 @@ def show_dashboard():
                     delta_color="normal" if today_kpi['inspection_efficiency'] >= 95 else "inverse"
                 )
             
-            with col3:
+    with col3:
                 st.metric(
                     label="📝 총 검사건수",
                     value=f"{today_kpi['total_inspections']}건",
                     delta=f"검사수량: {today_kpi['total_inspected_qty']}개"
                 )
             
-            with col4:
+    with col4:
                 st.metric(
                     label="❌ 불량수량",
                     value=f"{today_kpi['total_defect_qty']}개",

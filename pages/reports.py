@@ -27,7 +27,7 @@ def show_reports():
         with col1:
             start_date = st.date_input("시작일", value=today - timedelta(days=30))
         with col2:
-            end_date = st.date_input("종료일", value=today)
+        end_date = st.date_input("종료일", value=today)
         
         # 모델 선택
         try:
@@ -112,7 +112,7 @@ def show_report_menu():
         if st.button("📆 주별 분석", use_container_width=True, key="weekly_btn", help="주별 검사실적 추이"):
             st.session_state.report_type = "weekly"
             st.rerun()
-    
+            
     col1, col2, col3 = st.columns(3)
     
     # 월별 분석
@@ -120,7 +120,7 @@ def show_report_menu():
         if st.button("📊 월별 분석", use_container_width=True, key="monthly_btn", help="월별 검사실적 추이"):
             st.session_state.report_type = "monthly"
             st.rerun()
-    
+            
     # 불량 분석
     with col2:
         if st.button("🔍 불량 분석", use_container_width=True, key="defect_btn", help="불량유형별 상세 분석"):
@@ -285,9 +285,9 @@ def show_dashboard(filter_params):
         }).reset_index()
         model_summary['defect_rate'] = (model_summary['defect_quantity'] / model_summary['total_inspected'] * 100).fillna(0)
         
-        col1, col2 = st.columns(2)
-        
-        with col1:
+    col1, col2 = st.columns(2)
+    
+    with col1:
             fig = px.bar(
                 model_summary,
                 x='model_name',
@@ -296,8 +296,8 @@ def show_dashboard(filter_params):
                 labels={'total_inspected': '검사수량', 'model_name': '모델'}
             )
             st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
+    
+    with col2:
             fig = px.bar(
                 model_summary,
                 x='model_name',
@@ -340,7 +340,7 @@ def show_dashboard(filter_params):
                 color_continuous_scale='Reds'
             )
             st.plotly_chart(fig, use_container_width=True)
-
+    
 def show_daily_report(filter_params):
     """일별 분석 리포트를 표시합니다."""
     st.subheader("📅 일별 검사실적 분석")
@@ -368,14 +368,14 @@ def show_daily_report(filter_params):
     col1, col2 = st.columns(2)
     
     with col1:
-        fig = px.line(
+            fig = px.line(
             daily_summary,
             x='date',
             y='total_inspected',
             title="일별 검사수량 추이",
             markers=True
-        )
-        st.plotly_chart(fig, use_container_width=True)
+            )
+            st.plotly_chart(fig, use_container_width=True)
     
     with col2:
         fig = px.line(
@@ -387,7 +387,7 @@ def show_daily_report(filter_params):
             color_discrete_sequence=['red']
         )
         st.plotly_chart(fig, use_container_width=True)
-
+    
 def show_weekly_report(filter_params):
     """주별 분석 리포트를 표시합니다."""
     st.subheader("📆 주별 검사실적 분석")
@@ -435,7 +435,7 @@ def show_weekly_report(filter_params):
             color_discrete_sequence=['red']
         )
         st.plotly_chart(fig, use_container_width=True)
-
+    
 def show_monthly_report(filter_params):
     """월별 분석 리포트를 표시합니다."""
     st.subheader("📊 월별 검사실적 분석")
