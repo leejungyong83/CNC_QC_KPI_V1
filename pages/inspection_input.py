@@ -450,7 +450,7 @@ def show_inspection_data_view():
     
     except Exception as e:
         st.error(f"❌ 데이터 조회 중 오류: {str(e)}")
-
+            
 def generate_sample_inspection_data():
     """샘플 검사 데이터 생성"""
     today = get_vietnam_now().date()
@@ -550,7 +550,7 @@ def show_inspection_edit_form():
                 
                 with st.form("edit_form"):
                     col1, col2 = st.columns(2)
-                    
+    
                     with col1:
                         # 검사일자
                         edit_date = st.date_input(

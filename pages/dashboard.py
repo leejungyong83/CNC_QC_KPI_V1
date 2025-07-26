@@ -37,6 +37,7 @@ def show_dashboard():
             # KPI 카드 표시
             col1, col2, col3, col4 = st.columns(4)
             
+            
             with col1:
                 st.metric(
                     label="📊 오늘 불량률",
