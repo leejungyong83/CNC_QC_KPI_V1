@@ -1,4 +1,4 @@
-﻿import streamlit as st
+import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -27,7 +27,7 @@ def show_reports():
         with col1:
             start_date = st.date_input("시작일", value=today - timedelta(days=30))
         with col2:
-        end_date = st.date_input("종료일", value=today)
+            end_date = st.date_input("종료일", value=today)
         
         # 모델 선택
         try:
