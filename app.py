@@ -143,7 +143,11 @@ from pages.user_crud import show_user_crud
 from pages.admin_management import show_admin_management
 from pages.defect_type_management import show_defect_type_management
 from pages.supabase_config import show_supabase_config
-from pages.reports import show_reports, show_dashboard, show_daily_report, show_weekly_report, show_monthly_report, show_defect_analysis, get_inspection_data
+from pages.reports import (
+    show_reports, show_dashboard, show_daily_report, 
+    show_weekly_report, show_monthly_report, show_defect_analysis, 
+    get_inspection_data
+)
 from utils.supabase_client import get_supabase_client
 import hashlib
 import bcrypt
