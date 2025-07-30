@@ -16,16 +16,18 @@ from utils.shift_ui_components import (
     show_shift_comparison_cards,
     show_shift_timeline
 )
+# 번역 시스템 import
+from utils.language_manager import t
 
 def show_dashboard():
     """대시보드 메인 페이지"""
-    st.title("📊 CNC QC KPI 대시보드")
+    st.title(f"📊 {t('CNC QC KPI 대시보드')}")
     
     # 현재 교대조 정보 배너
     show_current_shift_banner()
     
     # 교대조 타임라인
-    with st.expander("🕐 오늘 교대조 타임라인", expanded=False):
+    with st.expander(f"🕐 {t('오늘 교대조 타임라인')}", expanded=False):
         show_shift_timeline()
     
     # KPI 메트릭 표시
@@ -37,12 +39,11 @@ def show_dashboard():
             # KPI 카드 표시
             col1, col2, col3, col4 = st.columns(4)
             
-            
             with col1:
                 st.metric(
-                    label="📊 오늘 불량률",
+                    label=f"📊 {t('오늘 불량률')}",
                     value=f"{today_kpi['defect_rate']:.3f}%",
-                    delta=f"목표: 0.02%" if today_kpi['defect_rate'] <= 0.02 else f"+{today_kpi['defect_rate']-0.02:.3f}%",
+                    delta=f"{t('목표')}: 0.02%" if today_kpi['defect_rate'] <= 0.02 else f"+{today_kpi['defect_rate']-0.02:.3f}%",
                     delta_color="normal" if today_kpi['defect_rate'] <= 0.02 else "inverse"
                 )
             
@@ -133,10 +134,10 @@ def show_inspector_performance():
             
             # 전체 검사자 성과 요약 (접을 수 있는 형태)
             if len(performance_data) > 2:
-                with st.expander(f"📊 전체 검사자 성과 순위 ({len(performance_data)}명)"):
+                with st.expander(f"📊 {t('전체 검사자 성과 순위')} ({len(performance_data)}명)"):
                     for i, data in enumerate(performance_data, 1):
                         rank_emoji = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"{i}위"
-                        st.write(f"{rank_emoji} {data['name']} ({data['employee_id']}) - 합격률: {data['pass_rate']:.1f}%, 검사건수: {data['total_inspections']}건")
+                        st.write(f"{rank_emoji} {data['name']} ({data['employee_id']}) - {t('합격률')}: {data['pass_rate']:.1f}%, {t('검사건수')}: {data['total_inspections']}건")
         else:
             # 실제 데이터가 없을 때 기본 안내
             col1, col2 = st.columns(2)
@@ -183,15 +184,15 @@ def show_kpi_alerts():
             target_defect_rate = 0.02  # 목표 불량율 0.02%
             
             if current_defect_rate <= target_defect_rate:
-                st.success(f"✅ **불량율 목표 달성**")
-                st.write(f"🎯 목표: **{target_defect_rate}%**")
-                st.write(f"📊 현재: **{current_defect_rate:.3f}%**")
-                st.write(f"📈 달성률: **{((target_defect_rate - current_defect_rate) / target_defect_rate * 100):.1f}% 초과 달성**")
+                st.success(f"✅ **{t('불량율 목표 달성')}")
+                st.write(f"🎯 {t('목표')}: **{target_defect_rate}%**")
+                st.write(f"📊 {t('현재')}: **{current_defect_rate:.3f}%**")
+                st.write(f"📈 {t('달성률')}: **{((target_defect_rate - current_defect_rate) / target_defect_rate * 100):.1f}% {t('초과 달성')}")
             else:
-                st.error(f"❌ **불량율 목표 미달성**")
-                st.write(f"🎯 목표: **{target_defect_rate}%**")
-                st.write(f"📊 현재: **{current_defect_rate:.3f}%**")
-                st.write(f"⚠️ 개선 필요: **{(current_defect_rate - target_defect_rate):.3f}%p**")
+                st.error(f"❌ **{t('불량율 목표 미달성')}")
+                st.write(f"🎯 {t('목표')}: **{target_defect_rate}%**")
+                st.write(f"📊 {t('현재')}: **{current_defect_rate:.3f}%**")
+                st.write(f"⚠️ {t('개선 필요')}: **{(current_defect_rate - target_defect_rate):.3f}%p**")
         
         with col2:
             # 검사효율성 KPI
@@ -199,15 +200,15 @@ def show_kpi_alerts():
             target_efficiency = 95.0  # 목표 검사효율 95%
             
             if current_efficiency >= target_efficiency:
-                st.success(f"✅ **검사효율성 목표 달성**")
-                st.write(f"🎯 목표: **{target_efficiency}%**")
-                st.write(f"📊 현재: **{current_efficiency:.1f}%**")
-                st.write(f"📈 달성률: **{(current_efficiency / target_efficiency * 100):.1f}%**")
+                st.success(f"✅ **{t('검사효율성 목표 달성')}")
+                st.write(f"🎯 {t('목표')}: **{target_efficiency}%**")
+                st.write(f"📊 {t('현재')}: **{current_efficiency:.1f}%**")
+                st.write(f"📈 {t('달성률')}: **{(current_efficiency / target_efficiency * 100):.1f}%**")
             else:
-                st.warning(f"⚠️ **검사효율성 목표 미달성**")
-                st.write(f"🎯 목표: **{target_efficiency}%**")
-                st.write(f"📊 현재: **{current_efficiency:.1f}%**")
-                st.write(f"📉 부족분: **{(target_efficiency - current_efficiency):.1f}%p**")
+                st.warning(f"⚠️ **{t('검사효율성 목표 미달성')}")
+                st.write(f"🎯 {t('목표')}: **{target_efficiency}%**")
+                st.write(f"📊 {t('현재')}: **{current_efficiency:.1f}%**")
+                st.write(f"📉 {t('부족분')}: **{(target_efficiency - current_efficiency):.1f}%p**")
                 
     except Exception as e:
         st.error(f"KPI 데이터 계산 중 오류: {str(e)}")
@@ -238,14 +239,14 @@ def show_enhanced_shift_comparison():
             with col1:
                 better_defect = "주간조" if analysis['better_defect_rate'] == 'DAY' else "야간조"
                 better_emoji = "☀️" if analysis['better_defect_rate'] == 'DAY' else "🌙"
-                st.success(f"🏆 **불량률 우수**: {better_emoji} {better_defect}")
-                st.caption(f"차이: {analysis['defect_rate_diff']:.3f}%p")
+                st.success(f"🏆 **{t('불량률 우수')}: {better_emoji} {better_defect}**")
+                st.caption(f"{t('차이')}: {analysis['defect_rate_diff']:.3f}%p")
             
             with col2:
                 better_efficiency = "주간조" if analysis['better_efficiency'] == 'DAY' else "야간조"
                 better_emoji = "☀️" if analysis['better_efficiency'] == 'DAY' else "🌙"
-                st.success(f"🏆 **효율성 우수**: {better_emoji} {better_efficiency}")
-                st.caption(f"차이: {analysis['efficiency_diff']:.1f}%p")
+                st.success(f"🏆 **{t('효율성 우수')}: {better_emoji} {better_efficiency}**")
+                st.caption(f"{t('차이')}: {analysis['efficiency_diff']:.1f}%p")
                 
     except Exception as e:
         st.error(f"교대조 비교 데이터 로딩 오류: {str(e)}")

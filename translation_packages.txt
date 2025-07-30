@@ -1,0 +1,19 @@
+# 🌐 언어전환 기능 필요 패키지 목록
+
+# 핵심 번역 라이브러리
+googletrans==4.0.0rc1          # Google 번역 API (무료)
+langdetect==1.0.9              # 언어 자동 감지
+requests>=2.31.0               # HTTP 요청 (googletrans 의존성)
+urllib3>=1.26.0                # URL 처리 (googletrans 의존성)
+
+# UI 컴포넌트
+streamlit-option-menu==0.3.6   # 언어 선택 메뉴
+pycountry==22.3.5              # 국가/언어 코드 관리
+
+# 추가 지원 라이브러리 (선택사항)
+# deep-translator==1.11.4     # 대안 번역 라이브러리
+# googletrans-py==5.3.0       # googletrans 대안
+# azure-cognitiveservices-language-translator  # Azure 번역 (유료)
+
+# 설치 명령어:
+# pip install googletrans==4.0.0rc1 langdetect==1.0.9 streamlit-option-menu==0.3.6 pycountry==22.3.5 

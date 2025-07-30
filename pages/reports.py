@@ -8,10 +8,12 @@ from utils.supabase_client import get_supabase_client
 from utils.vietnam_timezone import get_vietnam_now, get_vietnam_display_time, get_vietnam_date
 from utils.data_converter import convert_supabase_data_timezone, convert_dataframe_timezone
 from utils.defect_utils import get_defect_type_names
+# 번역 시스템 import
+from utils.language_manager import t
 
 def show_reports():
     """보고서 페이지를 표시합니다."""
-    st.header("📊 보고서")
+    st.header(f"📊 {t('보고서')}")
     
     # 세션 상태 초기화
     if "report_type" not in st.session_state:
@@ -19,15 +21,15 @@ def show_reports():
     
     # 공통으로 사용할 날짜 선택 및 데이터
     with st.sidebar:
-        st.subheader("📋 리포트 설정")
+        st.subheader(f"📋 {t('리포트 설정')}")
         today = get_vietnam_now().date()  # 베트남 시간 기준 오늘 날짜
         
         # 날짜 범위 선택
         col1, col2 = st.columns(2)
         with col1:
-            start_date = st.date_input("시작일", value=today - timedelta(days=30))
+            start_date = st.date_input(f"시작일", value=today - timedelta(days=30))
         with col2:
-            end_date = st.date_input("종료일", value=today)
+            end_date = st.date_input(f"종료일", value=today)
         
         # 모델 선택
         try:
@@ -37,7 +39,7 @@ def show_reports():
         except:
             available_models = ["전체 모델"]
         
-        selected_model = st.selectbox("모델 선택", available_models)
+        selected_model = st.selectbox(f"모델 선택", available_models)
         
         # 검사자 선택
         try:
@@ -46,18 +48,18 @@ def show_reports():
         except:
             available_inspectors = ["전체 검사자"]
         
-        selected_inspector = st.selectbox("검사자 선택", available_inspectors)
+        selected_inspector = st.selectbox(f"검사자 선택", available_inspectors)
         
         # 공정 선택
         processes = ["전체 공정", "IQC", "CNC1_PQC", "CNC2_PQC", "OQC", "CNC OQC"]
-        selected_process = st.selectbox("공정 선택", processes)
+        selected_process = st.selectbox(f"공정 선택", processes)
     
     # 리포트 타입 선택 버튼 표시
     if st.session_state.report_type is None:
         show_report_menu()
     else:
         # 뒤로 가기 버튼
-        if st.button("← 리포트 메뉴로 돌아가기"):
+        if st.button(f"← {t('리포트 메뉴로 돌아가기')}"):
             st.session_state.report_type = None
             st.rerun()
             
@@ -83,13 +85,13 @@ def show_reports():
 
 def show_report_menu():
     """리포트 메뉴 화면을 표시합니다."""
-    st.subheader("📊 리포트 메뉴")
+    st.subheader(f"📊 {t('리포트 메뉴')}")
     
     # 리포트 설명
-    st.markdown("""
-    **실제 검사실적 데이터를 기반으로 한 종합 분석 리포트**
-    - 모든 데이터는 Supabase에서 실시간으로 조회됩니다
-    - 사이드바에서 필터 조건을 설정할 수 있습니다
+    st.markdown(f"""
+    **{t('실제 검사실적 데이터를 기반으로 한 종합 분석 리포트')}**
+    - {t('모든 데이터는 Supabase에서 실시간으로 조회됩니다')}
+    - {t('사이드바에서 필터 조건을 설정할 수 있습니다')}
     """)
     
     # 리포트 카드 행 생성
@@ -97,19 +99,19 @@ def show_report_menu():
     
     # 총합 대시보드
     with col1:
-        if st.button("📈 종합 대시보드", use_container_width=True, key="dashboard_btn", help="전체 검사실적 요약"):
+        if st.button(f"📈 {t('종합 대시보드')}", use_container_width=True, key="dashboard_btn", help=f"{t('전체 검사실적 요약')}"):
             st.session_state.report_type = "dashboard"
             st.rerun()
     
     # 일별 분석
     with col2:
-        if st.button("📅 일별 분석", use_container_width=True, key="daily_btn", help="일별 검사실적 추이"):
+        if st.button(f"📅 {t('일별 분석')}", use_container_width=True, key="daily_btn", help=f"{t('일별 검사실적 추이')}"):
             st.session_state.report_type = "daily"
             st.rerun()
             
     # 주별 분석
     with col3:
-        if st.button("📆 주별 분석", use_container_width=True, key="weekly_btn", help="주별 검사실적 추이"):
+        if st.button(f"📆 {t('주별 분석')}", use_container_width=True, key="weekly_btn", help=f"{t('주별 검사실적 추이')}"):
             st.session_state.report_type = "weekly"
             st.rerun()
             
@@ -117,13 +119,13 @@ def show_report_menu():
     
     # 월별 분석
     with col1:
-        if st.button("📊 월별 분석", use_container_width=True, key="monthly_btn", help="월별 검사실적 추이"):
+        if st.button(f"📊 {t('월별 분석')}", use_container_width=True, key="monthly_btn", help=f"{t('월별 검사실적 추이')}"):
             st.session_state.report_type = "monthly"
             st.rerun()
             
     # 불량 분석
     with col2:
-        if st.button("🔍 불량 분석", use_container_width=True, key="defect_btn", help="불량유형별 상세 분석"):
+        if st.button(f"🔍 {t('불량 분석')}", use_container_width=True, key="defect_btn", help=f"{t('불량유형별 상세 분석')}"):
             st.session_state.report_type = "defect_analysis"
             st.rerun()
 
@@ -199,48 +201,48 @@ def get_inspection_data(filter_params):
         return df
         
     except Exception as e:
-        st.error(f"데이터 조회 중 오류가 발생했습니다: {str(e)}")
+        st.error(f"{t('데이터 조회 중 오류가 발생했습니다')}: {str(e)}")
         return pd.DataFrame()
 
 def show_dashboard_report(filter_params):
     """종합 대시보드 리포트를 표시합니다."""
-    st.subheader("📈 종합 대시보드")
+    st.subheader(f"📈 {t('종합 대시보드')}")
     
     # 데이터 조회
     df = get_inspection_data(filter_params)
     
     if df.empty:
-        st.warning("⚠️ 선택한 조건에 해당하는 데이터가 없습니다.")
+        st.warning(f"⚠️ {t('선택한 조건에 해당하는 데이터가 없습니다')}")
         return
     
     # 필터 정보 표시
-    st.info(f"📅 분석 기간: {filter_params['start_date']} ~ {filter_params['end_date']} | 총 {len(df)}건의 검사실적")
+    st.info(f"{t('📅 분석 기간')}: {filter_params['start_date']} ~ {filter_params['end_date']} | {t('총')} {len(df)} {t('건의 검사실적')}")
     
     # 주요 KPI 표시
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         total_inspected = df['total_inspected'].sum()
-        st.metric("총 검사수량", f"{total_inspected:,}개")
+        st.metric(f"{t('총 검사수량')}", f"{total_inspected:,}개")
     
     with col2:
         total_defects = df['defect_quantity'].sum()
-        st.metric("총 불량수량", f"{total_defects:,}개")
+        st.metric(f"{t('총 불량수량')}", f"{total_defects:,}개")
     
     with col3:
         overall_defect_rate = (total_defects / total_inspected * 100) if total_inspected > 0 else 0
-        st.metric("전체 불량률", f"{overall_defect_rate:.2f}%")
+        st.metric(f"{t('전체 불량률')}", f"{overall_defect_rate:.2f}%")
     
     with col4:
         pass_count = len(df[df['result'] == '합격'])
         pass_rate = (pass_count / len(df) * 100) if len(df) > 0 else 0
-        st.metric("합격률", f"{pass_rate:.1f}%")
+        st.metric(f"{t('합격률')}", f"{pass_rate:.1f}%")
     
     # 차트 표시
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("📊 일별 검사수량 추이")
+        st.subheader(f"📊 {t('일별 검사수량 추이')}")
         daily_summary = df.groupby(df['inspection_date'].dt.date).agg({
             'total_inspected': 'sum',
             'defect_quantity': 'sum'
@@ -251,15 +253,15 @@ def show_dashboard_report(filter_params):
                 daily_summary,
                 x='inspection_date',
                 y='total_inspected',
-                title="일별 검사수량",
-                labels={'total_inspected': '검사수량', 'inspection_date': '날짜'}
+                title=f"{t('일별 검사수량')}",
+                labels={'total_inspected': t('검사수량'), 'inspection_date': t('날짜')}
             )
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.info("표시할 데이터가 없습니다.")
+            st.info(f"{t('표시할 데이터가 없습니다')}")
     
     with col2:
-        st.subheader("📈 일별 불량률 추이")
+        st.subheader(f"📈 {t('일별 불량률 추이')}")
         if not daily_summary.empty:
             daily_summary['defect_rate'] = (daily_summary['defect_quantity'] / daily_summary['total_inspected'] * 100).fillna(0)
             
@@ -267,18 +269,18 @@ def show_dashboard_report(filter_params):
                 daily_summary,
                 x='inspection_date',
                 y='defect_rate',
-                title="일별 불량률",
-                labels={'defect_rate': '불량률 (%)', 'inspection_date': '날짜'},
+                title=f"{t('일별 불량률')}",
+                labels={'defect_rate': t('불량률 (%)'), 'inspection_date': t('날짜')},
                 markers=True
             )
             fig.update_traces(line_color='red')
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.info("표시할 데이터가 없습니다.")
+            st.info(f"{t('표시할 데이터가 없습니다')}")
     
     # 모델별 분석
     if len(df['model_name'].unique()) > 1:
-        st.subheader("🔧 모델별 검사실적")
+        st.subheader(f"🔧 {t('모델별 검사실적')}")
         model_summary = df.groupby('model_name').agg({
             'total_inspected': 'sum',
             'defect_quantity': 'sum'
@@ -292,8 +294,8 @@ def show_dashboard_report(filter_params):
                 model_summary,
                 x='model_name',
                 y='total_inspected',
-                title="모델별 검사수량",
-                labels={'total_inspected': '검사수량', 'model_name': '모델'}
+                title=f"{t('모델별 검사수량')}",
+                labels={'total_inspected': t('검사수량'), 'model_name': t('모델')}
             )
             st.plotly_chart(fig, use_container_width=True)
     
@@ -302,8 +304,8 @@ def show_dashboard_report(filter_params):
                 model_summary,
                 x='model_name',
                 y='defect_rate',
-                title="모델별 불량률",
-                labels={'defect_rate': '불량률 (%)', 'model_name': '모델'},
+                title=f"{t('모델별 불량률')}",
+                labels={'defect_rate': t('불량률 (%)'), 'model_name': t('모델')},
                 color='defect_rate',
                 color_continuous_scale='Reds'
             )
@@ -311,7 +313,7 @@ def show_dashboard_report(filter_params):
     
     # 검사자별 분석
     if len(df['inspector_name'].unique()) > 1:
-        st.subheader("👤 검사자별 검사실적")
+        st.subheader(f"👤 {t('검사자별 검사실적')}")
         inspector_summary = df.groupby('inspector_name').agg({
             'total_inspected': 'sum',
             'defect_quantity': 'sum'
@@ -325,7 +327,7 @@ def show_dashboard_report(filter_params):
                 inspector_summary,
                 values='total_inspected',
                 names='inspector_name',
-                title="검사자별 검사수량 비율"
+                title=f"{t('검사자별 검사수량 비율')}"
             )
             st.plotly_chart(fig, use_container_width=True)
         
@@ -334,8 +336,8 @@ def show_dashboard_report(filter_params):
                 inspector_summary,
                 x='inspector_name',
                 y='defect_rate',
-                title="검사자별 불량률",
-                labels={'defect_rate': '불량률 (%)', 'inspector_name': '검사자'},
+                title=f"{t('검사자별 불량률')}",
+                labels={'defect_rate': t('불량률 (%)'), 'inspector_name': t('검사자')},
                 color='defect_rate',
                 color_continuous_scale='Reds'
             )
@@ -343,12 +345,12 @@ def show_dashboard_report(filter_params):
     
 def show_daily_report(filter_params):
     """일별 분석 리포트를 표시합니다."""
-    st.subheader("📅 일별 검사실적 분석")
+    st.subheader(f"📅 {t('일별 검사실적 분석')}")
     
     df = get_inspection_data(filter_params)
     
     if df.empty:
-        st.warning("⚠️ 선택한 조건에 해당하는 데이터가 없습니다.")
+        st.warning(f"⚠️ {t('선택한 조건에 해당하는 데이터가 없습니다')}")
         return
     
     # 일별 집계
@@ -361,7 +363,7 @@ def show_daily_report(filter_params):
     daily_summary['defect_rate'] = (daily_summary['defect_quantity'] / daily_summary['total_inspected'] * 100).fillna(0)
     
     # 상세 테이블
-    st.subheader("📋 일별 상세 데이터")
+    st.subheader(f"📋 {t('일별 상세 데이터')}")
     st.dataframe(daily_summary, use_container_width=True)
     
     # 차트
@@ -372,7 +374,7 @@ def show_daily_report(filter_params):
             daily_summary,
             x='date',
             y='total_inspected',
-            title="일별 검사수량 추이",
+            title=f"{t('일별 검사수량 추이')}",
             markers=True
             )
             st.plotly_chart(fig, use_container_width=True)
@@ -382,7 +384,7 @@ def show_daily_report(filter_params):
             daily_summary,
             x='date',
             y='defect_rate',
-            title="일별 불량률 추이",
+            title=f"{t('일별 불량률 추이')}",
             markers=True,
             color_discrete_sequence=['red']
         )
@@ -390,12 +392,12 @@ def show_daily_report(filter_params):
     
 def show_weekly_report(filter_params):
     """주별 분석 리포트를 표시합니다."""
-    st.subheader("📆 주별 검사실적 분석")
+    st.subheader(f"📆 {t('주별 검사실적 분석')}")
     
     df = get_inspection_data(filter_params)
     
     if df.empty:
-        st.warning("⚠️ 선택한 조건에 해당하는 데이터가 없습니다.")
+        st.warning(f"⚠️ {t('선택한 조건에 해당하는 데이터가 없습니다')}")
         return
     
     # 주별 집계 (월요일 시작)
@@ -410,7 +412,7 @@ def show_weekly_report(filter_params):
     weekly_summary['week_str'] = weekly_summary['week'].astype(str)
     
     # 상세 테이블
-    st.subheader("📋 주별 상세 데이터")
+    st.subheader(f"📋 {t('주별 상세 데이터')}")
     st.dataframe(weekly_summary[['week_str', 'total_inspected', 'defect_quantity', 'defect_rate', 'inspection_count']], use_container_width=True)
     
     # 차트
@@ -421,7 +423,7 @@ def show_weekly_report(filter_params):
             weekly_summary,
             x='week_str',
             y='total_inspected',
-            title="주별 검사수량"
+            title=f"{t('주별 검사수량')}"
         )
         st.plotly_chart(fig, use_container_width=True)
     
@@ -430,7 +432,7 @@ def show_weekly_report(filter_params):
             weekly_summary,
             x='week_str',
             y='defect_rate',
-            title="주별 불량률 추이",
+            title=f"{t('주별 불량률 추이')}",
             markers=True,
             color_discrete_sequence=['red']
         )
@@ -438,12 +440,12 @@ def show_weekly_report(filter_params):
     
 def show_monthly_report(filter_params):
     """월별 분석 리포트를 표시합니다."""
-    st.subheader("📊 월별 검사실적 분석")
+    st.subheader(f"📊 {t('월별 검사실적 분석')}")
     
     df = get_inspection_data(filter_params)
     
     if df.empty:
-        st.warning("⚠️ 선택한 조건에 해당하는 데이터가 없습니다.")
+        st.warning(f"⚠️ {t('선택한 조건에 해당하는 데이터가 없습니다')}")
         return
     
     # 월별 집계
@@ -458,18 +460,18 @@ def show_monthly_report(filter_params):
     monthly_summary['month_str'] = monthly_summary['month'].astype(str)
     
     # 상세 테이블
-    st.subheader("📋 월별 상세 데이터")
+    st.subheader(f"📋 {t('월별 상세 데이터')}")
     st.dataframe(monthly_summary[['month_str', 'total_inspected', 'defect_quantity', 'defect_rate', 'inspection_count']], use_container_width=True)
     
     # 복합 차트
-    st.subheader("📈 월별 생산량 및 불량률 추이")
+    st.subheader(f"📈 {t('월별 생산량 및 불량률 추이')}")
     fig = go.Figure()
     
     # 생산량 바 차트
     fig.add_trace(go.Bar(
         x=monthly_summary['month_str'],
         y=monthly_summary['total_inspected'],
-        name='검사수량',
+        name=t('검사수량'),
         yaxis='y'
     ))
     
@@ -477,16 +479,16 @@ def show_monthly_report(filter_params):
     fig.add_trace(go.Scatter(
         x=monthly_summary['month_str'],
         y=monthly_summary['defect_rate'],
-        name='불량률 (%)',
+        name=t('불량률 (%)'),
         yaxis='y2',
         mode='lines+markers',
         line=dict(color='red')
     ))
     
     fig.update_layout(
-        yaxis=dict(title='검사수량'),
-        yaxis2=dict(title='불량률 (%)', overlaying='y', side='right'),
-        xaxis=dict(title='월'),
+        yaxis=dict(title=t('검사수량')),
+        yaxis2=dict(title=t('불량률 (%)'), overlaying='y', side='right'),
+        xaxis=dict(title=t('월')),
         legend=dict(x=0.01, y=0.99)
     )
     
@@ -494,7 +496,7 @@ def show_monthly_report(filter_params):
 
 def show_defect_analysis(filter_params):
     """불량 분석 리포트를 표시합니다."""
-    st.subheader("🔍 불량 분석")
+    st.subheader(f"🔍 {t('불량 분석')}")
     
     try:
         supabase = get_supabase_client()
@@ -504,14 +506,14 @@ def show_defect_analysis(filter_params):
         defects_result = defects_query.execute()
         
         if not defects_result.data:
-            st.warning("⚠️ 불량 데이터가 없습니다.")
+            st.warning(f"⚠️ {t('불량 데이터가 없습니다')}")
             return
         
         # 검사실적 데이터와 조인
         inspection_df = get_inspection_data(filter_params)
         
         if inspection_df.empty:
-            st.warning("⚠️ 선택한 조건에 해당하는 검사실적이 없습니다.")
+            st.warning(f"⚠️ {t('선택한 조건에 해당하는 검사실적이 없습니다')}")
             return
         
         # 불량 데이터 처리 (시간대 변환 적용)
@@ -528,7 +530,7 @@ def show_defect_analysis(filter_params):
         defect_summary = defect_summary.sort_values('total_defects', ascending=False)
         
         # 상세 테이블
-        st.subheader("📋 불량유형별 상세 데이터")
+        st.subheader(f"📋 {t('불량유형별 상세 데이터')}")
         st.dataframe(defect_summary, use_container_width=True)
         
         # 차트
@@ -539,7 +541,7 @@ def show_defect_analysis(filter_params):
                 defect_summary,
                 values='total_defects',
                 names='defect_type',
-                title="불량유형별 비율"
+                title=f"{t('불량유형별 비율')}"
             )
             st.plotly_chart(fig, use_container_width=True)
         
@@ -548,14 +550,14 @@ def show_defect_analysis(filter_params):
                 defect_summary,
                 x='defect_type',
                 y='total_defects',
-                title="불량유형별 수량",
+                title=f"{t('불량유형별 수량')}",
                 color='total_defects',
                 color_continuous_scale='Reds'
             )
             st.plotly_chart(fig, use_container_width=True)
         
         # 파레토 차트
-        st.subheader("📊 불량유형 파레토 분석")
+        st.subheader(f"📊 {t('불량유형 파레토 분석')}")
         defect_summary_sorted = defect_summary.sort_values('total_defects', ascending=False)
         defect_summary_sorted['cumulative_percent'] = (defect_summary_sorted['total_defects'].cumsum() / defect_summary_sorted['total_defects'].sum() * 100)
         
@@ -565,7 +567,7 @@ def show_defect_analysis(filter_params):
         fig.add_trace(go.Bar(
             x=defect_summary_sorted['defect_type'],
             y=defect_summary_sorted['total_defects'],
-            name='불량수량',
+            name=t('불량수량'),
             yaxis='y'
         ))
         
@@ -573,21 +575,21 @@ def show_defect_analysis(filter_params):
         fig.add_trace(go.Scatter(
             x=defect_summary_sorted['defect_type'],
             y=defect_summary_sorted['cumulative_percent'],
-            name='누적 비율 (%)',
+            name=t('누적 비율 (%)'),
             yaxis='y2',
             mode='lines+markers',
             line=dict(color='red')
         ))
         
         fig.update_layout(
-            yaxis=dict(title='불량수량'),
-            yaxis2=dict(title='누적 비율 (%)', overlaying='y', side='right', range=[0, 100]),
-            xaxis=dict(title='불량유형'),
+            yaxis=dict(title=t('불량수량')),
+            yaxis2=dict(title=t('누적 비율 (%)'), overlaying='y', side='right', range=[0, 100]),
+            xaxis=dict(title=t('불량유형')),
             legend=dict(x=0.01, y=0.99),
-            title="불량유형 파레토 차트"
+            title=f"{t('불량유형 파레토 차트')}"
         )
         
         st.plotly_chart(fig, use_container_width=True)
         
     except Exception as e:
-        st.error(f"불량 분석 중 오류가 발생했습니다: {str(e)}") 
+        st.error(f"{t('불량 분석 중 오류가 발생했습니다')}: {str(e)}") 

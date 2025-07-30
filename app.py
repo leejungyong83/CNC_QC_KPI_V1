@@ -7,6 +7,10 @@ import io
 import re
 from utils.vietnam_timezone import get_vietnam_now
 
+# 언어전환 시스템 import
+from utils.language_manager import get_language_manager, t
+from utils.translation_ui import show_enhanced_language_selector
+
 # 교대조 시스템 버전 - v2.0.1 (TypeError 완전 해결)
 __version__ = "2.0.1"
 
@@ -190,13 +194,13 @@ except Exception as e:
     
 # 인증되지 않은 경우 로그인 화면 표시
 if not st.session_state.authenticated:
-    st.title("🏭 QC KPI 시스템")
-    st.subheader("로그인")
+    st.title(f"🏭 {t('QC KPI 시스템')}")
+    st.subheader(t("로그인"))
     
     with st.form("login_form"):
-        email = st.text_input("이메일")
-        password = st.text_input("비밀번호", type="password")
-        submit_button = st.form_submit_button("로그인")
+        email = st.text_input(t("이메일"))
+        password = st.text_input(t("비밀번호"), type="password")
+        submit_button = st.form_submit_button(t("로그인"))
         
         if submit_button:
             if email and password:
@@ -232,12 +236,12 @@ if not st.session_state.authenticated:
                                 st.session_state.user_name = user_data.get('name', '사용자')
                                 st.session_state.user_role = user_data.get('role', 'user')
                                 st.session_state.selected_menu = "종합 대시보드"  # 로그인 시 종합 대시보드로 이동
-                                st.success("로그인 성공!")
+                                st.success(t("로그인 성공!"))
                                 st.rerun()
                             else:
-                                st.error("이메일 또는 비밀번호가 올바르지 않습니다.")
+                                st.error(t("이메일 또는 비밀번호가 올바르지 않습니다."))
                         else:
-                            st.error("이메일 또는 비밀번호가 올바르지 않습니다.")
+                            st.error(t("이메일 또는 비밀번호가 올바르지 않습니다."))
                     else:
                         # Supabase 연결 실패 시 기본 테스트 계정
                         if email == "admin@company.com" and password == "admin123":
@@ -245,108 +249,119 @@ if not st.session_state.authenticated:
                             st.session_state.user_name = "관리자"
                             st.session_state.user_role = "admin"  # "관리자" -> "admin"으로 변경
                             st.session_state.selected_menu = "종합 대시보드"  # 로그인 시 종합 대시보드로 이동
-                            st.success("로그인 성공!")
+                            st.success(t("로그인 성공!"))
                             st.rerun()
                         elif email == "user@company.com" and password == "user123":
                             st.session_state.authenticated = True
                             st.session_state.user_name = "사용자"
                             st.session_state.user_role = "user"  # "사용자" -> "user"로 변경
                             st.session_state.selected_menu = "종합 대시보드"  # 로그인 시 종합 대시보드로 이동
-                            st.success("로그인 성공!")
+                            st.success(t("로그인 성공!"))
                             st.rerun()
                         else:
-                            st.error("이메일 또는 비밀번호가 잘못되었습니다.")
+                            st.error(t("이메일 또는 비밀번호가 잘못되었습니다."))
                 
                 except Exception as e:
-                    st.error(f"로그인 중 오류 발생: {str(e)}")
+                    st.error(f"{t('로그인 중 오류 발생')}: {str(e)}")
                     # 오류 시 기본 테스트 계정으로 fallback
                     if email == "admin@company.com" and password == "admin123":
                         st.session_state.authenticated = True
                         st.session_state.user_name = "관리자"
                         st.session_state.user_role = "admin"  # "관리자" -> "admin"으로 변경
                         st.session_state.selected_menu = "종합 대시보드"  # 로그인 시 종합 대시보드로 이동
-                        st.success("로그인 성공!")
+                        st.success(t("로그인 성공!"))
+                        st.rerun()
+                    elif email == "user@company.com" and password == "user123":
+                        st.session_state.authenticated = True
+                        st.session_state.user_name = "사용자"
+                        st.session_state.user_role = "user"  # "사용자" -> "user"로 변경
+                        st.session_state.selected_menu = "종합 대시보드"  # 로그인 시 종합 대시보드로 이동
+                        st.success(t("로그인 성공!"))
                         st.rerun()
                     else:
-                        st.error("이메일 또는 비밀번호가 잘못되었습니다.")
+                        st.error(t("이메일 또는 비밀번호가 잘못되었습니다."))
             else:
-                st.error("이메일과 비밀번호를 모두 입력해주세요.")
+                st.error(t("이메일과 비밀번호를 모두 입력해주세요."))
     
     # 테스트 계정 안내 숨김 처리 (사용자 요청)
     
 else:
     # 로그인 후 화면
-    st.sidebar.title(f"환영합니다, {st.session_state.user_name}")
-    st.sidebar.caption(f"권한: {st.session_state.user_role}")
+    st.sidebar.title(f"{t('환영합니다')}, {st.session_state.user_name}")
+    st.sidebar.caption(f"{t('권한')}: {st.session_state.user_role}")
     
+    # 언어 선택기 추가
+    st.sidebar.markdown("---")
+    show_enhanced_language_selector()
+    st.sidebar.markdown("---")
 
     
     # 사이드바 카테고리 및 메뉴
-    st.sidebar.markdown("### 메뉴")
+    st.sidebar.markdown(f"### {t('메뉴')}")
     
     # 관리자 메뉴 (admin, superadmin, 관리자 역할 모두 지원)
     if st.session_state.user_role in ["admin", "superadmin", "관리자"]:
-        with st.sidebar.expander("⚙️ 관리자 메뉴", expanded=True):
-            if st.button("👥 사용자관리", key="user_crud", use_container_width=True):
+        with st.sidebar.expander(f"⚙️ {t('관리자 메뉴')}", expanded=True):
+            if st.button(f"👥 {t('사용자관리')}", key="user_crud", use_container_width=True):
                 st.session_state.selected_menu = "사용자 관리"
                 st.rerun()
-            if st.button("👨‍💼 관리자관리", key="admin_mgmt", use_container_width=True):
+            if st.button(f"👨‍💼 {t('관리자관리')}", key="admin_mgmt", use_container_width=True):
                 st.session_state.selected_menu = "관리자 관리"
                 st.rerun()
-            if st.button("👷 검사자관리", key="inspector_mgmt", use_container_width=True):
+            if st.button(f"👷 {t('검사자관리')}", key="inspector_mgmt", use_container_width=True):
                 st.session_state.selected_menu = "검사자 등록 및 관리"
                 st.rerun()
-            if st.button("🏭 생산모델관리", key="model_mgmt", use_container_width=True):
+            if st.button(f"🏭 {t('생산모델관리')}", key="model_mgmt", use_container_width=True):
                 st.session_state.selected_menu = "생산모델 관리"
                 st.rerun()
-            if st.button("📋 불량유형관리", key="defect_type_mgmt", use_container_width=True):
+            if st.button(f"📋 {t('불량유형관리')}", key="defect_type_mgmt", use_container_width=True):
                 st.session_state.selected_menu = "불량 유형 관리"
                 st.rerun()
-            if st.button("🔧 Supabase설정", key="supabase_config", use_container_width=True):
+            if st.button(f"🔧 {t('Supabase설정')}", key="supabase_config", use_container_width=True):
                 st.session_state.selected_menu = "Supabase 설정"
                 st.rerun()
-            if st.button("🛠️ 시스템상태", key="system_health", use_container_width=True):
+            if st.button(f"🛠️ {t('시스템상태')}", key="system_health", use_container_width=True):
                 st.session_state.selected_menu = "시스템 상태"
                 st.rerun()
-            if st.button("⚡ 성능모니터링", key="performance_monitor", use_container_width=True):
+            if st.button(f"⚡ {t('성능모니터링')}", key="performance_monitor", use_container_width=True):
                 st.session_state.selected_menu = "성능 모니터링"
                 st.rerun()
-            if st.button("📋 자동보고서", key="auto_reports", use_container_width=True):
+            if st.button(f"📋 {t('자동보고서')}", key="auto_reports", use_container_width=True):
                 st.session_state.selected_menu = "자동 보고서"
                 st.rerun()
-            if st.button("📈 고급분석", key="advanced_analytics", use_container_width=True):
+            if st.button(f"📈 {t('고급분석')}", key="advanced_analytics", use_container_width=True):
                 st.session_state.selected_menu = "고급 분석"
                 st.rerun()
     
     # 사용자 메뉴 (expander에서 제거하여 직접 노출) - 2024-01-20 수정
-    st.sidebar.markdown("### 📝 데이터입력")
-    if st.sidebar.button("📝 검사데이터입력", key="inspection_input", use_container_width=True):
+    st.sidebar.markdown(f"### 📝 {t('데이터입력')}")
+    if st.sidebar.button(f"📝 {t('검사데이터입력')}", key="inspection_input", use_container_width=True):
         st.session_state.selected_menu = "검사 데이터 입력"
         st.rerun()
     
     # 리포트 메뉴 (개별 메뉴로 노출)
-    st.sidebar.markdown("### 📊 리포트")
-    if st.sidebar.button("📈 종합대시보드", key="dashboard", use_container_width=True):
+    st.sidebar.markdown(f"### 📊 {t('리포트')}")
+    if st.sidebar.button(f"📈 {t('종합대시보드')}", key="dashboard", use_container_width=True):
         st.session_state.selected_menu = "종합 대시보드"
         st.rerun()
-    if st.sidebar.button("📅 일별분석", key="daily_analysis", use_container_width=True):
+    if st.sidebar.button(f"📅 {t('일별분석')}", key="daily_analysis", use_container_width=True):
         st.session_state.selected_menu = "일별 분석"
         st.rerun()
-    if st.sidebar.button("📆 주별분석", key="weekly_analysis", use_container_width=True):
+    if st.sidebar.button(f"📆 {t('주별분석')}", key="weekly_analysis", use_container_width=True):
         st.session_state.selected_menu = "주별 분석"
         st.rerun()
-    if st.sidebar.button("📊 월별분석", key="monthly_analysis", use_container_width=True):
+    if st.sidebar.button(f"📊 {t('월별분석')}", key="monthly_analysis", use_container_width=True):
         st.session_state.selected_menu = "월별 분석"
         st.rerun()
-    if st.sidebar.button("🔍 불량분석", key="defect_analysis", use_container_width=True):
+    if st.sidebar.button(f"🔍 {t('불량분석')}", key="defect_analysis", use_container_width=True):
         st.session_state.selected_menu = "불량 분석"
         st.rerun()
-    if st.sidebar.button("🏭 교대조분석", key="shift_analysis", use_container_width=True):
+    if st.sidebar.button(f"🏭 {t('교대조분석')}", key="shift_analysis", use_container_width=True):
         st.session_state.selected_menu = "교대조별 실적분석"
         st.rerun()
     
     # 알림 시스템 (새로 추가)
-    st.sidebar.markdown("### 🔔 알림")
+    st.sidebar.markdown(f"### 🔔 {t('알림')}")
     
     # 사이드바 알림 요약 표시
     try:
@@ -355,19 +370,19 @@ else:
     except Exception:
         notification_count = 0
     
-    if st.sidebar.button("🔔 알림센터", key="notification_center", use_container_width=True):
+    if st.sidebar.button(f"🔔 {t('알림센터')}", key="notification_center", use_container_width=True):
         st.session_state.selected_menu = "알림 센터"
         st.rerun()
     
     # 파일 관리 (새로 추가)
-    st.sidebar.markdown("### 📁 파일")
-    if st.sidebar.button("📥 파일관리", key="file_management", use_container_width=True):
+    st.sidebar.markdown(f"### 📁 {t('파일')}")
+    if st.sidebar.button(f"📥 {t('파일관리')}", key="file_management", use_container_width=True):
         st.session_state.selected_menu = "파일 관리"
         st.rerun()
     
     # 모바일 모드 전환 (새로 추가)
-    st.sidebar.markdown("### 📱 모바일")
-    if st.sidebar.button("📱 모바일 모드", key="mobile_mode", use_container_width=True):
+    st.sidebar.markdown(f"### 📱 {t('모바일')}")
+    if st.sidebar.button(f"📱 {t('모바일 모드')}", key="mobile_mode", use_container_width=True):
         st.session_state.is_mobile = True
         st.session_state.selected_menu = "모바일 모드"
         st.rerun()
@@ -375,7 +390,7 @@ else:
 
     
     # 로그아웃 버튼
-    if st.sidebar.button("🚪 로그아웃"):
+    if st.sidebar.button(f"🚪 {t('로그아웃')}"):
         st.session_state.authenticated = False
         st.session_state.user_role = None
         st.session_state.user_name = None
