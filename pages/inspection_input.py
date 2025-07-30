@@ -12,6 +12,7 @@ from utils.defect_utils import get_defect_type_names
 from utils.vietnam_timezone import get_database_time, get_database_time_iso, get_vietnam_display_time, get_vietnam_now
 from utils.data_converter import convert_supabase_data_timezone, convert_dataframe_timezone
 from utils.shift_manager import get_current_shift, get_shift_for_time, shift_manager
+from utils.photo_manager import get_photo_manager, render_photo_upload_tab
 # 번역 시스템 import
 from utils.language_manager import t
 import random
@@ -20,19 +21,28 @@ def show_inspection_input():
     """검사실적 관리 - 사용자 요청 필드에 맞춘 새로운 버전"""
     st.title(f"🔍 {t('검사실적 관리')}")
     
-    # 탭 생성
-    tabs = st.tabs([f"📝 {t('실적 데이터 입력')}", f"📊 {t('실적 데이터 조회')}", f"✏️ {t('데이터 수정')}", f"🗑️ {t('데이터 삭제')}"])
+    # 탭 생성 - 사진 첨부 탭 추가
+    tabs = st.tabs([
+        f"📝 {t('실적 데이터 입력')}", 
+        f"📷 {t('사진 첨부')}", 
+        f"📊 {t('실적 데이터 조회')}", 
+        f"✏️ {t('데이터 수정')}", 
+        f"🗑️ {t('데이터 삭제')}"
+    ])
     
     with tabs[0]:
         show_inspection_input_form()
     
     with tabs[1]:
-        show_inspection_data_view()
+        show_photo_attachment_tab()
     
     with tabs[2]:
-        show_inspection_edit_form()
+        show_inspection_data_view()
     
     with tabs[3]:
+        show_inspection_edit_form()
+    
+    with tabs[4]:
         show_inspection_delete_form()
 
 def show_inspection_input_form():
@@ -848,6 +858,90 @@ def show_inspection_delete_form():
     
     except Exception as e:
         st.error(f"❌ {t('오류가 발생했습니다')}: {str(e)}")
+
+def show_photo_attachment_tab():
+    """사진 첨부 탭 - 검사 데이터와 연동"""
+    st.header(f"📷 {t('검사 사진 첨부')}")
+    
+    try:
+        supabase = get_supabase_client()
+        
+        # 검사 데이터 목록 조회 (최근 30일)
+        from datetime import datetime, timedelta
+        thirty_days_ago = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+        
+        inspection_result = supabase.table('inspection_data')\
+            .select('*, inspectors(name), production_models(model_name)')\
+            .gte('inspection_date', thirty_days_ago)\
+            .order('created_at', desc=True)\
+            .limit(50)\
+            .execute()
+        
+        if not inspection_result.data:
+            st.info(f"📋 {t('최근 30일간 검사 데이터가 없습니다')}.")
+            return
+        
+        # 검사 데이터 목록 표시
+        st.subheader(f"🔍 {t('검사 데이터 선택')}")
+        
+        inspection_options = []
+        for item in inspection_result.data:
+            inspector_name = item.get('inspectors', {}).get('name', 'Unknown') if item.get('inspectors') else 'Unknown'
+            model_name = item.get('production_models', {}).get('model_name', 'Unknown') if item.get('production_models') else 'Unknown'
+            
+            option_text = f"{item['inspection_date']} | {inspector_name} | {model_name} | {item.get('result', 'N/A')}"
+            inspection_options.append((option_text, item['id']))
+        
+        if not inspection_options:
+            st.info(f"📋 {t('사용 가능한 검사 데이터가 없습니다')}.")
+            return
+        
+        # 검사 데이터 선택
+        selected_option = st.selectbox(
+            f"{t('사진을 첨부할 검사 데이터를 선택하세요')}:",
+            options=[opt[0] for opt in inspection_options],
+            help=f"{t('날짜 | 검사자 | 모델 | 결과 순으로 표시됩니다')}"
+        )
+        
+        if selected_option:
+            selected_inspection_id = next(opt[1] for opt in inspection_options if opt[0] == selected_option)
+            
+            # 선택된 검사 데이터 상세 정보
+            selected_inspection = next(item for item in inspection_result.data if item['id'] == selected_inspection_id)
+            
+            with st.expander(f"📋 {t('선택된 검사 데이터 상세 정보')}", expanded=True):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.write(f"**📅 {t('검사일')}:** {selected_inspection['inspection_date']}")
+                    st.write(f"**👤 {t('검사자')}:** {selected_inspection.get('inspectors', {}).get('name', 'Unknown') if selected_inspection.get('inspectors') else 'Unknown'}")
+                    st.write(f"**🔧 {t('모델')}:** {selected_inspection.get('production_models', {}).get('model_name', 'Unknown') if selected_inspection.get('production_models') else 'Unknown'}")
+                with col2:
+                    st.write(f"**✅ {t('결과')}:** {selected_inspection.get('result', 'N/A')}")
+                    st.write(f"**📊 {t('검사수량')}:** {selected_inspection.get('total_inspected', 'N/A')}")
+                    st.write(f"**❌ {t('불량수량')}:** {selected_inspection.get('defect_quantity', 'N/A')}")
+                
+                if selected_inspection.get('notes'):
+                    st.write(f"**📝 {t('비고')}:** {selected_inspection['notes']}")
+            
+            st.divider()
+            
+            # 사진 첨부 기능 - 새로운 PhotoManager 사용
+            current_user = st.session_state.get('user_name', 'Unknown User')
+            render_photo_upload_tab(selected_inspection_id, current_user)
+    
+    except Exception as e:
+        st.error(f"❌ {t('사진 첨부 기능 오류')}: {str(e)}")
+        st.error(f"📝 {t('상세 오류')}: {str(e)}")
+        
+        # 오프라인 모드로 사진 첨부 기능 제공
+        st.warning(f"⚠️ {t('데이터베이스 연결 오류로 인해 오프라인 모드로 전환합니다')}.")
+        
+        # 더미 검사 ID로 사진 첨부 기능 테스트
+        dummy_inspection_id = "test-inspection-" + datetime.now().strftime('%Y%m%d-%H%M%S')
+        current_user = st.session_state.get('user_name', 'Test User')
+        
+        st.info(f"🧪 {t('테스트 모드')}: {dummy_inspection_id}")
+        render_photo_upload_tab(dummy_inspection_id, current_user)
 
 def get_inspection_items(model):
     """모델별 검사항목 반환"""
