@@ -475,5 +475,5 @@ else:
         show_auto_reports()
         
     elif menu == "고급 분석":
-        from pages.advanced_analytics import show_advanced_analytics
-        show_advanced_analytics() 
+        from pages.analytics_basic import show_analytics_basic
+        show_analytics_basic() 
